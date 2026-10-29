@@ -1,0 +1,26 @@
+name: Offline controller tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install tested dependencies
+        run: python -m pip install -e . -c constraints-tested.txt
+      - name: Check dependencies
+        run: python -m pip check
+      - name: Run offline tests without launching the game
+        run: python -m unittest discover -s tests -q
+      - name: Check Python syntax
+        run: python -m compileall -q src scripts tests

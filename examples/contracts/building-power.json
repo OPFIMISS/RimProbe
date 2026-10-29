@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "recipe": "building_power",
+  "def_name": "RimProbe_FixturePower",
+  "intent": "After real construction, the constant generator must produce at least 90 W and remain registered with a power network throughout sampled observation.",
+  "source_refs": [
+    "CompPowerPlant.CompTick / UpdateDesiredPowerOutput",
+    "fixtures/AbilityContract/Defs/PowerFixture.xml"
+  ],
+  "fixture": {
+    "settle_ticks": 60,
+    "construction_skill": 12
+  },
+  "expect": [
+    {
+      "kind": "power_output_at_least",
+      "minimum_watts": 90
+    },
+    {
+      "kind": "power_net_registered"
+    }
+  ],
+  "observe_ticks": 180,
+  "max_ticks": 6000,
+  "timeout_seconds": 120
+}

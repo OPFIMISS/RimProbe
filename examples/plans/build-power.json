@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "intent": "Normal construction yields a handle; assert actual generation and continuous network membership using generic observations.",
+  "steps": [
+    {
+      "id": "build",
+      "op": "build",
+      "bind": "generator",
+      "def_name": "RimProbe_FixturePower"
+    },
+    {
+      "id": "inspect",
+      "op": "inspect",
+      "target": "generator"
+    },
+    {
+      "id": "output",
+      "op": "wait_assert",
+      "target": "generator",
+      "property": "power.watts",
+      "compare": "ge",
+      "value": 90,
+      "ticks": 300,
+      "hold_ticks": 120
+    },
+    {
+      "id": "network",
+      "op": "assert",
+      "target": "generator",
+      "property": "power.connected",
+      "compare": "eq",
+      "value": 1
+    }
+  ],
+  "max_ticks": 18000,
+  "timeout_seconds": 180
+}

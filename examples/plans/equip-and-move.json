@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "intent": "Equip a ground weapon through its job, then move next to another fixture Pawn.",
+  "steps": [
+    {
+      "id": "create_actor",
+      "op": "spawn_pawn",
+      "bind": "actor"
+    },
+    {
+      "id": "create_target",
+      "op": "spawn_pawn",
+      "bind": "target",
+      "near": "actor",
+      "distance": 8
+    },
+    {
+      "id": "weapon",
+      "op": "spawn_item",
+      "bind": "weapon",
+      "def_name": "Gun_Autopistol",
+      "near": "actor"
+    },
+    {
+      "id": "inspect_before",
+      "op": "inspect",
+      "target": "actor"
+    },
+    {
+      "id": "equip",
+      "op": "equip",
+      "actor": "actor",
+      "target": "weapon"
+    },
+    {
+      "id": "equipped",
+      "op": "wait_assert",
+      "target": "actor",
+      "property": "pawn.equipped",
+      "def_name": "Gun_Autopistol",
+      "compare": "eq",
+      "value": 1,
+      "ticks": 600
+    },
+    {
+      "id": "move",
+      "op": "move",
+      "actor": "actor",
+      "target": "target"
+    },
+    {
+      "id": "arrived",
+      "op": "wait_assert",
+      "target": "actor",
+      "property": "pawn.distance_to",
+      "other": "target",
+      "compare": "le",
+      "value": 1.5,
+      "ticks": 600
+    },
+    {
+      "id": "inspect_after",
+      "op": "inspect",
+      "target": "actor"
+    }
+  ],
+  "max_ticks": 18000,
+  "timeout_seconds": 180
+}

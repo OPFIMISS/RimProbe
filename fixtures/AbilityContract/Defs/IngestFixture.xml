@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <ThingDef Name="RimProbeIngestBase" ParentName="MealCooked" Abstract="True">
+    <graphicData>
+      <texPath>Things/Item/Meal/Simple</texPath>
+      <graphicClass>Graphic_MealVariants</graphicClass>
+    </graphicData>
+    <statBases><MarketValue>1</MarketValue><Nutrition>0.9</Nutrition></statBases>
+    <ingestible>
+      <preferability>MealSimple</preferability>
+      <baseIngestTicks>120</baseIngestTicks>
+      <ingestEffect>EatVegetarian</ingestEffect>
+      <ingestSound>Meal_Eat</ingestSound>
+    </ingestible>
+  </ThingDef>
+  <ThingDef ParentName="RimProbeIngestBase">
+    <defName>RimProbe_FixtureMeal</defName>
+    <label>RimProbe marker meal</label>
+    <description>Disposable ingestion effect fixture.</description>
+    <ingestible><outcomeDoers><li Class="IngestionOutcomeDoer_GiveHediff"><hediffDef>RimProbe_FixtureMarker</hediffDef><severity>0.1</severity></li></outcomeDoers></ingestible>
+  </ThingDef>
+  <ThingDef ParentName="RimProbeIngestBase">
+    <defName>RimProbe_FixtureMealNoEffect</defName>
+    <label>RimProbe no-effect meal</label>
+    <description>Negative control: real nutrition and consumption, intentionally no marker outcome.</description>
+  </ThingDef>
+</Defs>

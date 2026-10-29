@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "recipe": "item_ingest",
+  "def_name": "RimProbe_FixtureMeal",
+  "intent": "Ingesting this fixture item through the normal job must consume the item, raise nutrition and apply its declared Hediff.",
+  "source_refs": [
+    "fixtures/AbilityContract/Defs/IngestFixture.xml: ingestible/outcomeDoers"
+  ],
+  "expect": [
+    {
+      "kind": "item_consumed"
+    },
+    {
+      "kind": "nutrition_increased"
+    },
+    {
+      "kind": "hediff_added",
+      "def_name": "RimProbe_FixtureMarker",
+      "when": "end"
+    }
+  ],
+  "observe_ticks": 900,
+  "timeout_seconds": 90,
+  "max_ticks": 6000
+}

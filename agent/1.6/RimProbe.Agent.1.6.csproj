@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <RimWorldVersion>1.6</RimWorldVersion>
+    <ManagedPath Condition="'$(ManagedPath)' == ''">$(GamePath)/RimWorldWin64_Data/Managed</ManagedPath>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+  </PropertyGroup>
+  <Import Project="../Agent.Shared.props" />
+  <ItemGroup>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="Assembly-CSharp" HintPath="$(ManagedPath)/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(ManagedPath)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(ManagedPath)/UnityEngine.IMGUIModule.dll" Private="false" />
+  </ItemGroup>
+  <Target Name="ValidateGameReferences" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(ManagedPath)/Assembly-CSharp.dll')" Text="Set ManagedPath to genuine RimWorld 1.6 managed assemblies, or GamePath to a 1.6 install." />
+    <Error Condition="!Exists('$(ManagedPath)/UnityEngine.CoreModule.dll')" Text="Missing the 1.6 UnityEngine.CoreModule.dll reference." />
+    <Error Condition="!Exists('$(ManagedPath)/UnityEngine.IMGUIModule.dll')" Text="Missing the 1.6 UnityEngine.IMGUIModule.dll reference required for real UI repaint observation." />
+  </Target>
+</Project>

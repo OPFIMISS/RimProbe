@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "recipe": "ability_cast",
+  "def_name": "RimProbe_FixtureMark",
+  "intent": "Normal casting must add the fixture Hediff to the separate target Pawn and consume the ability cooldown.",
+  "source_refs": ["fixtures/AbilityContract/Defs/AbilityFixture.xml: RimProbe_FixtureMark", "RimWorld.CompAbilityEffect_GiveHediff.Apply/ApplyInner"],
+  "fixture": {"actor_kind": "Colonist", "target_kind": "Colonist", "target": "pawn", "target_faction": "player", "distance": 3},
+  "expect": [
+    {"kind": "hediff_added", "subject": "target", "def_name": "RimProbe_FixtureMarker", "when": "end"},
+    {"kind": "cooldown_started", "subject": "actor", "when": "eventually"}
+  ],
+  "observe_ticks": 180,
+  "timeout_seconds": 90,
+  "max_ticks": 6000
+}

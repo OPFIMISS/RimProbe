@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RimWorldVersion>1.7</RimWorldVersion>
+  </PropertyGroup>
+  <Import Project="../Agent.Shared.props" />
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp" HintPath="$(GamePath)/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="UnityStubs" HintPath="$(GamePath)/UnityStubs.dll" Private="false" />
+  </ItemGroup>
+  <Target Name="ValidateGameReferences" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(GamePath)/Assembly-CSharp.dll')" Text="Set GamePath to the RimWorld 1.7 installation directory." />
+    <Error Condition="!Exists('$(GamePath)/UnityStubs.dll')" Text="Missing the 1.7 UnityStubs.dll reference." />
+  </Target>
+</Project>

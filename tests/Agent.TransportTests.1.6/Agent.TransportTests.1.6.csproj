@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <ManagedPath Condition="'$(ManagedPath)' == ''">$(GamePath)/RimWorldWin64_Data/Managed</ManagedPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Agent.TransportTests/Program.cs" />
+    <ProjectReference Include="../../agent/1.6/RimProbe.Agent.1.6.csproj" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="Assembly-CSharp" HintPath="$(ManagedPath)/Assembly-CSharp.dll" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(ManagedPath)/UnityEngine.CoreModule.dll" />
+  </ItemGroup>
+</Project>

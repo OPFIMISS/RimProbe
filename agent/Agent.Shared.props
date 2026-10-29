@@ -1,0 +1,40 @@
+<Project>
+  <PropertyGroup>
+    <AssemblyName>RimProbe.Agent</AssemblyName>
+    <RootNamespace>RimProbe.Agent</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <OutputPath>../../mod/$(RimWorldVersion)/Assemblies/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Agent.TransportTests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Agent.TransportTests.1.6</_Parameter1>
+    </AssemblyAttribute>
+    <Compile Include="../Bootstrap.cs" />
+    <Compile Include="../BridgeRuntime.cs" />
+    <Compile Include="../WireProtocol.cs" />
+    <Compile Include="../BuildingSuite.cs" />
+    <Compile Include="../ScenarioSuite.cs" />
+    <Compile Include="../RegisteredTests.cs" />
+    <Compile Include="../ScenarioActions.cs" />
+    <Compile Include="../ScenarioObservations.cs" />
+    <Compile Include="../ScenarioDiagnostics.cs" />
+    <Compile Include="../ScenarioFailures.cs" />
+    <Compile Include="../AbilitySuite.cs" />
+    <Compile Include="../ErrorJournal.cs" />
+    <Compile Include="../ItemSuite.cs" />
+    <Compile Include="../UiSuite.cs" />
+    <Compile Include="../RuntimeObservers.cs" />
+    <Reference Include="0Harmony" HintPath="$(HarmonyAssembly)" Private="false" />
+  </ItemGroup>
+  <Target Name="ValidateHarmonyReference" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(HarmonyAssembly)')" Text="Set HarmonyAssembly to the matching version's 0Harmony.dll." />
+  </Target>
+</Project>

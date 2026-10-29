@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "intent": "Assert real marker effects, then wait for the standard Ability Job to finish before issuing a second independent cast.",
+  "source_refs": ["fixtures/AbilityContract/Defs/AbilityFixture.xml"],
+  "steps": [
+    {"id": "caster", "op": "spawn_pawn", "bind": "actor"},
+    {"id": "subject", "op": "spawn_pawn", "bind": "target", "near": "actor"},
+    {"id": "grant_marker", "op": "grant_ability", "actor": "actor", "def_name": "RimProbe_FixtureMark"},
+    {"id": "grant_empty", "op": "grant_ability", "actor": "actor", "def_name": "RimProbe_FixtureNoEffect"},
+    {"id": "before", "op": "measure", "target": "target", "property": "pawn.hediff_count", "def_name": "RimProbe_FixtureMarker", "bind_value": "marker_before"},
+    {"id": "first_cast", "op": "cast", "actor": "actor", "target": "target", "def_name": "RimProbe_FixtureMark"},
+    {"id": "effect", "op": "wait_assert", "target": "target", "property": "pawn.hediff_count", "def_name": "RimProbe_FixtureMarker", "relative_to": "marker_before", "compare": "ge", "value": 1, "ticks": 1200},
+    {"id": "cast_finished", "op": "wait_assert", "target": "actor", "property": "pawn.ability_casting", "compare": "eq", "value": 0, "ticks": 1200},
+    {"id": "second_cast", "op": "cast", "actor": "actor", "target": "target", "def_name": "RimProbe_FixtureNoEffect"},
+    {"id": "second_cooldown", "op": "wait_assert", "target": "actor", "property": "pawn.ability_cooldown", "def_name": "RimProbe_FixtureNoEffect", "compare": "gt", "value": 0, "ticks": 1200},
+    {"id": "second_finished", "op": "wait_assert", "target": "actor", "property": "pawn.ability_casting", "compare": "eq", "value": 0, "ticks": 1200}
+  ],
+  "max_ticks": 6000,
+  "timeout_seconds": 120
+}

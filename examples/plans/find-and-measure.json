@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "intent": "Discover and bind an actual ground object, inspect it and measure fixture state; no functional assertion means inconclusive.",
+  "steps": [
+    {
+      "id": "actor",
+      "op": "spawn_pawn",
+      "bind": "actor"
+    },
+    {
+      "id": "item",
+      "op": "spawn_item",
+      "bind": "weapon",
+      "def_name": "Gun_Autopistol",
+      "near": "actor"
+    },
+    {
+      "id": "find",
+      "op": "find_thing",
+      "bind": "found",
+      "def_name": "Gun_Autopistol",
+      "near": "actor",
+      "radius": 10
+    },
+    {
+      "id": "inspect",
+      "op": "inspect",
+      "target": "found"
+    },
+    {
+      "id": "baseline",
+      "op": "measure",
+      "bind_value": "hp_before",
+      "target": "found",
+      "property": "hp"
+    }
+  ],
+  "timeout_seconds": 120,
+  "max_ticks": 6000
+}

@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "intent": "Use a real ability job and assert the source-declared marker increase against a measured baseline.",
+  "steps": [
+    {
+      "id": "create_actor",
+      "op": "spawn_pawn",
+      "bind": "actor"
+    },
+    {
+      "id": "create_target",
+      "op": "spawn_pawn",
+      "bind": "target",
+      "near": "actor",
+      "distance": 5
+    },
+    {
+      "id": "grant",
+      "op": "grant_ability",
+      "actor": "actor",
+      "def_name": "RimProbe_FixtureMark"
+    },
+    {
+      "id": "discover",
+      "op": "inspect",
+      "target": "target"
+    },
+    {
+      "id": "baseline",
+      "op": "measure",
+      "target": "target",
+      "property": "pawn.hediff_count",
+      "def_name": "RimProbe_FixtureMarker",
+      "bind_value": "before_marker"
+    },
+    {
+      "id": "cast",
+      "op": "cast",
+      "actor": "actor",
+      "target": "target",
+      "def_name": "RimProbe_FixtureMark"
+    },
+    {
+      "id": "effect",
+      "op": "wait_assert",
+      "target": "target",
+      "property": "pawn.hediff_count",
+      "compare": "ge",
+      "value": 1,
+      "ticks": 300,
+      "def_name": "RimProbe_FixtureMarker",
+      "relative_to": "before_marker"
+    }
+  ],
+  "max_ticks": 18000,
+  "timeout_seconds": 180
+}

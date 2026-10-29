@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "intent": "Read actual loaded Defs; absence of functional assertions must never return passed.",
+  "steps": [
+    {
+      "id": "abilities",
+      "op": "query_defs",
+      "def_type": "AbilityDef",
+      "query": "RimProbe_",
+      "limit": 8
+    },
+    {
+      "id": "items",
+      "op": "query_defs",
+      "def_type": "ThingDef",
+      "query": "RimProbe_",
+      "limit": 8
+    }
+  ],
+  "max_ticks": 18000,
+  "timeout_seconds": 180
+}

@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "intent": "Ordinary ingestion must destroy the exact meal and increase nutrition and the source-declared marker.",
+  "steps": [
+    {
+      "id": "create_actor",
+      "op": "spawn_pawn",
+      "bind": "actor"
+    },
+    {
+      "id": "meal",
+      "op": "spawn_item",
+      "bind": "meal",
+      "def_name": "RimProbe_FixtureMeal",
+      "near": "actor"
+    },
+    {
+      "id": "food_baseline",
+      "op": "measure",
+      "bind_value": "before_food",
+      "target": "actor",
+      "property": "pawn.food"
+    },
+    {
+      "id": "marker_baseline",
+      "op": "measure",
+      "bind_value": "before_marker",
+      "target": "actor",
+      "property": "pawn.hediff_count",
+      "def_name": "RimProbe_FixtureMarker"
+    },
+    {
+      "id": "eat",
+      "op": "ingest",
+      "actor": "actor",
+      "target": "meal"
+    },
+    {
+      "id": "consumed",
+      "op": "wait_assert",
+      "target": "meal",
+      "property": "destroyed",
+      "compare": "ge",
+      "value": 1,
+      "ticks": 300
+    },
+    {
+      "id": "nutrition",
+      "op": "wait_assert",
+      "target": "actor",
+      "property": "pawn.food",
+      "compare": "ge",
+      "value": 0.1,
+      "ticks": 300,
+      "relative_to": "before_food"
+    },
+    {
+      "id": "marker",
+      "op": "wait_assert",
+      "target": "actor",
+      "property": "pawn.hediff_count",
+      "compare": "ge",
+      "value": 1,
+      "ticks": 300,
+      "def_name": "RimProbe_FixtureMarker",
+      "relative_to": "before_marker"
+    }
+  ],
+  "max_ticks": 18000,
+  "timeout_seconds": 180
+}

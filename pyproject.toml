@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rimprobe"
+version = "0.1.0"
+description = "Local, isolated RimWorld runtime probes exposed through MCP"
+readme = "README.en.md"
+requires-python = ">=3.10"
+dependencies = ["mcp>=2.3,<3", "pydantic>=2,<3"]
+
+[project.scripts]
+rimprobe = "rimprobe.__main__:main"
+
+[project.urls]
+Repository = "https://github.com/OPFIMISS/RimProbe"
+Documentation = "https://github.com/OPFIMISS/RimProbe/blob/main/docs/GETTING_STARTED.md"
+Issues = "https://github.com/OPFIMISS/RimProbe/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]

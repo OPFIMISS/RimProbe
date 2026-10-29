@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <HediffDef>
+    <defName>RimProbe_FixtureMarker</defName>
+    <label>RimProbe fixture marker</label>
+    <description>A passive observation marker for disposable capability tests.</description>
+    <hediffClass>HediffWithComps</hediffClass>
+    <defaultLabelColor>(0.6, 0.8, 1)</defaultLabelColor>
+    <initialSeverity>0.1</initialSeverity>
+    <maxSeverity>1</maxSeverity>
+    <isBad>false</isBad>
+  </HediffDef>
+  <AbilityDef Name="RimProbeFixtureAbilityBase" Abstract="True">
+    <iconPath>UI/Commands/Attack</iconPath>
+    <hostile>false</hostile>
+    <casterMustBeCapableOfViolence>false</casterMustBeCapableOfViolence>
+    <disableGizmoWhileUndrafted>false</disableGizmoWhileUndrafted>
+    <cooldownTicksRange>120~120</cooldownTicksRange>
+    <verbProperties>
+      <verbClass>Verb_CastAbility</verbClass>
+      <range>15</range>
+      <warmupTime>0.1</warmupTime>
+      <targetParams>
+        <canTargetPawns>true</canTargetPawns>
+        <canTargetBuildings>false</canTargetBuildings>
+        <canTargetLocations>false</canTargetLocations>
+        <canTargetSelf>true</canTargetSelf>
+      </targetParams>
+    </verbProperties>
+  </AbilityDef>
+  <AbilityDef ParentName="RimProbeFixtureAbilityBase">
+    <defName>RimProbe_FixtureMark</defName>
+    <label>mark fixture target</label>
+    <description>Applies the fixture marker through the actual ability effect component.</description>
+    <comps>
+      <li Class="CompProperties_AbilityGiveHediff">
+        <compClass>CompAbilityEffect_GiveHediff</compClass>
+        <hediffDef>RimProbe_FixtureMarker</hediffDef>
+        <severity>0.1</severity>
+      </li>
+    </comps>
+  </AbilityDef>
+  <AbilityDef ParentName="RimProbeFixtureAbilityBase">
+    <defName>RimProbe_FixtureNoEffect</defName>
+    <label>no effect negative control</label>
+    <description>Casts normally but intentionally has no marker component.</description>
+  </AbilityDef>
+</Defs>

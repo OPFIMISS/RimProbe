@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>RimProbe.StarMoon.Tests</AssemblyName>
+    <GamePath Condition="'$(GamePath)' == ''">D:/Steam/steamapps/common/RimWorld</GamePath>
+    <TargetMod Condition="'$(TargetMod)' == ''">$(GamePath)/Mods/绮罗拓展-星月师</TargetMod>
+    <OutputPath>../mod/1.7/Assemblies/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../StarMoonTests.cs" />
+    <Reference Include="Assembly-CSharp" HintPath="$(GamePath)/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="UnityStubs" HintPath="$(GamePath)/UnityStubs.dll" Private="false" />
+    <Reference Include="RimProbe.Agent" HintPath="../../../mod/1.7/Assemblies/RimProbe.Agent.dll" Private="false" />
+    <Reference Include="StarMoon" HintPath="$(TargetMod)/1.7/Assemblies/kiiro_Stars and Moon's.dll" Private="false" />
+  </ItemGroup>
+</Project>

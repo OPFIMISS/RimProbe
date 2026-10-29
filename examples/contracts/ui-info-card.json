@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "recipe": "ui_info_card",
+  "def_name": "Wall",
+  "intent": "The real information card must open, complete repaints within the screen, and close without new errors.",
+  "expect": [
+    {
+      "kind": "window_opened"
+    },
+    {
+      "kind": "window_drawn"
+    },
+    {
+      "kind": "window_in_bounds"
+    },
+    {
+      "kind": "window_closed"
+    }
+  ],
+  "fixture": {
+    "hold_seconds": 2
+  },
+  "timeout_seconds": 30
+}

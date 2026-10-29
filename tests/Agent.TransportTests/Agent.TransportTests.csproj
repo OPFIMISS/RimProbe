@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../agent/1.7/RimProbe.Agent.1.7.csproj" />
+    <Reference Include="Assembly-CSharp" HintPath="$(GamePath)/Assembly-CSharp.dll" />
+    <Reference Include="UnityStubs" HintPath="$(GamePath)/UnityStubs.dll" />
+  </ItemGroup>
+</Project>

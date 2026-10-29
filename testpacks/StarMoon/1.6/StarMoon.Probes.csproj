@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AutomaticallyUseReferenceAssemblyPackages>false</AutomaticallyUseReferenceAssemblyPackages>
+    <AssemblyName>RimProbe.StarMoon.Tests</AssemblyName>
+    <ManagedPath Condition="'$(ManagedPath)' == ''">$(GamePath)/RimWorldWin64_Data/Managed</ManagedPath>
+    <TargetMod Condition="'$(TargetMod)' == ''">D:/Steam/steamapps/common/RimWorld/Mods/绮罗拓展-星月师</TargetMod>
+    <OutputPath>../mod/1.6/Assemblies/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../StarMoonTests.cs" />
+    <Reference Include="Assembly-CSharp" HintPath="$(ManagedPath)/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="UnityEngine.CoreModule" HintPath="$(ManagedPath)/UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="UnityEngine.IMGUIModule" HintPath="$(ManagedPath)/UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="RimProbe.Agent" HintPath="../../../mod/1.6/Assemblies/RimProbe.Agent.dll" Private="false" />
+    <Reference Include="StarMoon" HintPath="$(TargetMod)/1.6/Assemblies/kiiro_Stars and Moon's.dll" Private="false" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "rimprobe": {
+      "command": "E:/Rimbook/.venv/Scripts/python.exe",
+      "args": [
+        "-m", "rimprobe",
+        "--game", "D:/Steam/steamapps/common/RimWorld",
+        "--runs", "E:/Rimbook/runs/external-first-test",
+        "serve"
+      ]
+    }
+  }
+}
