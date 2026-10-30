@@ -64,7 +64,7 @@ async def verify(arguments):
             evidence["server"] = initialized.server_info.name
             tools = await client.list_tools()
             evidence["tool_names"] = [tool.name for tool in tools.tools]
-            assert len(tools.tools) == 9
+            assert len(tools.tools) == 15
 
             async def call(name, params):
                 response = await client.call_tool(name, params)

@@ -9,12 +9,14 @@ import uuid
 from .controller import Controller, atomic_json
 from .errors import ProbeError
 from .contracts import validate_contract
-from .plans import validate_plan, plan_catalog
+from .plans import validate_plan, plan_catalog, InteractionQueryInput
 
 
 def capabilities() -> dict:
     return {
         "plans": plan_catalog(),
+        "interaction_protocol": "Four typed live tools cooperate only with an active scenario explicitly yielding at wait_until interaction_closed; opaque handles, 64 live calls/run. See docs/interactions.md.",
+        "startup_only": "rimprobe_run_startup loads to the main menu without quicktest; functional=not_applicable. Deferred resources still need a feature test.",
         "protocol": 1, "versions": ["1.6", "1.7"], "background": "Windows private desktop, no desktop input",
         "suites": [{"name": "building_construction", "arguments": ["def_name", "stuff_name", "extra_mods", "supply_delay_ticks"],
                     "steps": ["startup log scan", "normal placement", "blueprint", "real hauling", "real construction"],
@@ -30,8 +32,8 @@ def capabilities() -> dict:
         "profile": "inherit enabled Mods/DLC/order by default; only the disposable copy receives additions; loaded-mods.json audits actual order",
         "outcomes": ["passed", "failed", "blocked", "unsupported", "inconclusive", "cancelled"],
         "workflow": "inspect_mod + actual source + capabilities.plans -> run_plan or recipe -> get_run(wait_seconds=10) until controller_finished; require cleanup_status=succeeded and owned_process_exit_verified=true. cleanup_complete is a legacy attempt-finished alias. If cleanup failed with a retained owned session, cancel_run retries cleanup; query evidence with get_artifact.",
-        "limitations": ["1.6 live game not verified", "UI supports information cards only; generic item actions currently include ingest/equip, not arbitrary custom interactions", "quicktest world is not deterministic",
-                        "Generic building assertions cover exposed properties only; custom Comp fields and framework actions may need new primitives", "No baseline attribution of existing startup errors"],
+        "limitations": ["1.6 live game not verified", "Semantic interactions are not UI pixels/input/hit-testing", "quicktest world is not deterministic",
+                        "World choices enumerate existing WorldObjects/MapParents, not arbitrary tiles; source/verb Targeter chains, Caravan, bills and custom frameworks remain unsupported", "Read-only baseline comparison never attributes or suppresses errors; complete Mod/asset provenance is missing", "Observable stable-frame readiness does not prove renderer rebuild completion"],
     }
 
 
@@ -79,6 +81,16 @@ def scan_log_files(directory: Path, start_offsets: dict | None = None) -> dict:
             "attribution": "Unattributed log candidates, not proof of target Mod fault; no-errors does not prove correctness."}
 
 
+def outcome_layers(record: dict) -> dict:
+    def log_status(key):
+        count = record.get(key)
+        return "not_observed" if count is None else "error_candidates" if count else "no_candidates_observed"
+    return {"functional": record.get("suite", {}).get("status", "not_observed"),
+            "startup": log_status("startup_error_candidates"), "runtime": log_status("runtime_error_candidates"),
+            "cleanup": record.get("cleanup_status", "pending"), "overall": record["status"],
+            "note": "Independent dimensions; no-candidates is not proof of correctness. Overall remains strict."}
+
+
 class TestRunner:
     def __init__(self, controller: Controller):
         self.controller = controller
@@ -104,8 +116,11 @@ class TestRunner:
                 raise ProbeError("run_active", "Wait for or cancel the current test run.")
             if self.controller.session is not None:
                 raise ProbeError("cleanup_pending", "Previous owned session remains; retry cleanup with cancel_run before starting another run.")
-            launched = self.controller.launch(extra_mods=extra_mods, profile_mode=profile_mode,
-                                              ui_profile=contract is not None and (contract["recipe"] == "ui_info_card" or contract.get("display_profile") == "ui"))
+            launch_args = {"extra_mods": extra_mods, "profile_mode": profile_mode,
+                           "ui_profile": contract is not None and (contract["recipe"] == "ui_info_card" or contract.get("display_profile") == "ui")}
+            if contract is not None and contract["recipe"] == "startup":
+                launch_args["quicktest"] = False
+            launched = self.controller.launch(**launch_args)
             run_id = uuid.uuid4().hex
             self._directory = Path(launched["directory"])
             self._cancel = threading.Event()
@@ -128,12 +143,18 @@ class TestRunner:
         validated = validate_plan(plan)
         return self.run_suite("Scenario", None, extra_mods, validated["timeout_seconds"], validated["max_ticks"], profile_mode, validated)
 
+    def run_startup(self, extra_mods: list[str] | None = None, profile_mode: str = "inherit", timeout_seconds: int = 180) -> dict:
+        return self.run_suite("Startup", None, extra_mods, timeout_seconds, 60, profile_mode,
+                              {"recipe": "startup", "timeout_seconds": timeout_seconds, "max_ticks": 60,
+                               "scope": "Def/resource initialization and main-menu readiness only; no generated test map or functional pass."})
+
     def run_contract(self, contract: dict, extra_mods: list[str] | None = None, profile_mode: str = "inherit") -> dict:
         validated = validate_contract(contract)
         return self.run_suite(validated["def_name"], validated["fixture"].get("stuff_name"), extra_mods, validated["timeout_seconds"],
                               validated.get("max_ticks", 6000), profile_mode, validated)
 
     def _save(self):
+        self._record["outcomes"] = outcome_layers(self._record)
         atomic_json(self._directory / "report.json", self._record)
 
     def _update(self, **values):
@@ -143,23 +164,33 @@ class TestRunner:
 
     def _execute(self, parameters):
         try:
-            deadline = time.monotonic() + 180
+            startup_only = parameters.get("contract", {}).get("recipe") == "startup"
+            deadline = time.monotonic() + (parameters["timeout_seconds"] if startup_only else 180)
             while not self._cancel.is_set():
                 try:
                     state = self.controller.status()
-                    if state.get("map_ready"):
+                    if state.get("map_ready") or startup_only and state.get("phase") == "entry" and state.get("long_event_pending") is False:
                         break
                 except ProbeError as error:
                     if error.code not in {"bridge_not_ready", "bridge_unreachable", "main_thread_timeout"}:
                         raise
                 if time.monotonic() >= deadline:
-                    raise ProbeError("startup_timeout", "No playable map within 180 seconds.")
+                    raise ProbeError("startup_timeout", "Startup readiness not reached within its budget.")
                 self._cancel.wait(0.5)
             if self._cancel.is_set():
                 self._update(status="cancelled", stage="startup")
                 return
             startup = scan_log_files(self._directory)
             atomic_json(self._directory / "startup.json", startup)
+            if startup_only:
+                status = "passed" if not startup["error_count"] and not startup["scan_truncated"] and startup["sources"] else "inconclusive"
+                if state.get("mod_set_matches") is False:
+                    status = "blocked"
+                self._update(status=status,
+                             stage="completed", startup_error_candidates=startup["error_count"],
+                             suite={"status": "not_applicable", "stage": "startup", "scope": "Startup loading only; functional behavior not tested."},
+                             message="Startup-only log/Def loading check; no test map requested, no functional conclusion.")
+                return
             self._update(stage="construction", startup_error_candidates=startup["error_count"])
             red_checkpoint = state.get("red_error_sequence", 0)
             red_seen = red_checkpoint
@@ -257,7 +288,9 @@ class TestRunner:
         except Exception as error:
             self._update(status="failed", cleanup_status="failed", cleanup_error=str(error)[:2000])
 
-    def get_run(self, run_id: str, wait_seconds: int = 0) -> dict:
+    def get_run(self, run_id: str, wait_seconds: int = 0, detail: bool = False) -> dict:
+        if type(detail) is not bool:
+            raise ProbeError("invalid_detail", "detail must be a boolean.")
         if type(wait_seconds) is not int or not 0 <= wait_seconds <= 15:
             raise ProbeError("invalid_wait", "wait_seconds must be an integer 0..15; zero returns immediately.")
         with self._lock:
@@ -275,6 +308,24 @@ class TestRunner:
             record["controller_finished"] = self._thread is not None and not self._thread.is_alive()
             record["cleanup_complete"] = record["controller_finished"]
             record["cleanup_complete_semantics"] = "cleanup attempt finished; success requires cleanup_status=succeeded and owned_process_exit_verified=true"
+            record["outcomes"] = outcome_layers(record)
+            if not detail:
+                suite = record.get("suite", {})
+                if suite.get("interaction") is not None:
+                    record["interaction"] = suite["interaction"]
+                steps = suite.get("steps", [])
+                checks = suite.get("checks", [])
+                record["check_counts"] = {"steps": len(steps), "checks": len(checks),
+                    "passed": sum(step.get("status") == "passed" for step in steps) + sum(check.get("status") == "passed" for check in checks)}
+                primary = suite.get("primary_failure") or {}
+                record["error_summary"] = {"startup_candidates": record.get("startup_error_candidates"), "runtime_candidates": record.get("runtime_error_candidates"),
+                    "primary_failure": {key: primary[key] for key in ("type", "message", "step_id", "test_key", "lifecycle_phase", "failure_domain") if key in primary},
+                    "cleanup_failure_count": len(suite.get("cleanup_failures", []))}
+                for key in ("stop", "profile", "loaded_mods", "interaction_events"):
+                    record.pop(key, None)
+                if "suite" in record:
+                    record["suite"] = {key: suite[key] for key in ("status", "stage", "message", "scope") if key in suite}
+                record["detail_available"] = "rimprobe_get_run(detail=true) or rimprobe_get_artifact(report.json)"
             return record
 
     def cancel_run(self, run_id: str) -> dict:
@@ -305,3 +356,36 @@ class TestRunner:
             self._thread.join(timeout=20)
         if self.controller.session is not None:
             self.controller.stop()
+
+    def interact(self, run_id: str, command: str, query: dict | None = None) -> dict:
+        if command not in {"inspect_interaction", "enumerate_choices", "select_choice", "cancel_interaction"}:
+            raise ProbeError("unsupported", "Unknown typed interaction operation.")
+        try:
+            validated = InteractionQueryInput.model_validate(query or {}).model_dump()
+        except ValueError as error:
+            raise ProbeError("invalid_interaction", str(error)[:1000]) from error
+        if (validated["x"] is None) != (validated["z"] is None):
+            raise ProbeError("invalid_interaction", "Both x and z are required for a map cell candidate.")
+        if command in {"select_choice", "cancel_interaction"} and validated["interaction"] is None:
+            raise ProbeError("invalid_interaction", "Writes require the discovered interaction handle.")
+        if command == "select_choice" and validated["choice"] is None:
+            raise ProbeError("invalid_interaction", "Selection requires a discovered choice handle.")
+        with self._lock:
+            record = self.get_run(run_id)
+            if record["controller_finished"] or record["status"] != "running" or record["suite_name"] != "scenario":
+                raise ProbeError("interaction_unavailable", "An active owned scenario run is required.")
+            history = self._record.setdefault("interaction_events", [])
+            if len(history) >= 64:
+                raise ProbeError("interaction_budget", "Live interaction call budget (64) exhausted; cancel the run.")
+            try:
+                state = self.controller.interact(command, run_id, validated)
+                result = state.get("interaction")
+                if not isinstance(result, dict):
+                    raise ProbeError("invalid_response", "Agent omitted interaction evidence.")
+            except ProbeError as error:
+                history.append({"op": command, "error": error.as_dict()["error"]})
+                self._save()
+                raise
+            history.append({"op": command, "result": result})
+            self._save()
+            return result

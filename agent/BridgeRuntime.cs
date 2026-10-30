@@ -63,6 +63,7 @@ public sealed class BridgeRuntime : IDisposable
             return;
         }
 
+        InteractionHub.Pump();
         runtime.suites.Pump();
         runtime.scenarioSuite.Pump();
         runtime.abilitySuite.Pump();
@@ -113,12 +114,17 @@ public sealed class BridgeRuntime : IDisposable
                         runtime.itemSuite.Cancel();
                         runtime.uiSuite.Cancel();
                     }
+                    InteractionSnapshot? interaction = null;
+                    if (new[] { "inspect_interaction", "enumerate_choices", "select_choice", "cancel_interaction" }.Contains(pending.Request.Command))
+                        interaction = runtime.scenarioSuite.Interact(pending.Request.Parameters?.RunId ?? "", pending.Request.Command!, pending.Request.Parameters?.Interaction ?? new InteractionQuery());
                     pending.Result = Snapshot();
+                    pending.Result.Interaction = interaction;
                     pending.Result.Suite = runtime.ActiveReport;
                 }
                 catch (Exception error)
                 {
-                    pending.Error = error.ToString();
+                    pending.ErrorCode = error is ProbeStepException known ? known.Outcome : "snapshot_failed";
+                    pending.Error = error.Message.Length <= 1000 ? error.Message : error.Message.Substring(0, 1000);
                 }
                 finally
                 {
@@ -229,7 +235,7 @@ public sealed class BridgeRuntime : IDisposable
             return;
         }
 
-        if (request.Command != "get_state" && request.Command != "start_building_suite" && request.Command != "start_contract" && request.Command != "cancel_suite")
+        if (!new[] { "get_state", "start_building_suite", "start_contract", "cancel_suite", "inspect_interaction", "enumerate_choices", "select_choice", "cancel_interaction" }.Contains(request.Command))
         {
             Reply(stream, requestId, null, "unknown_command", "Supported commands: get_state, start_building_suite, start_contract, cancel_suite.");
             return;
@@ -262,7 +268,7 @@ public sealed class BridgeRuntime : IDisposable
             }
             else if (pending.Error != null)
             {
-                Reply(stream, requestId, null, "snapshot_failed", pending.Error);
+                Reply(stream, requestId, null, pending.ErrorCode, pending.Error);
             }
             else
             {
@@ -335,5 +341,6 @@ public sealed class BridgeRuntime : IDisposable
         public bool Cancelled;
         public StateSnapshot? Result;
         public string? Error;
+        public string ErrorCode = "snapshot_failed";
     }
 }

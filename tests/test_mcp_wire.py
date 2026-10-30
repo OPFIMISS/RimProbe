@@ -57,7 +57,7 @@ class McpWireTests(unittest.TestCase):
                     self.assertEqual(initialized["result"]["serverInfo"]["name"], "RimProbe")
                     send("notifications/initialized", {})
                     listed = send("tools/list", {}, 2)["result"]["tools"]
-                    self.assertEqual(len(listed), 9)
+                    self.assertEqual(len(listed), 15)
                     target = next(tool for tool in listed if tool["name"] == "rimprobe_run_contract")
                     encoded = json.dumps(target["inputSchema"])
                     for recipe in ("ability_cast", "item_ingest", "ui_info_card", "building_power"):

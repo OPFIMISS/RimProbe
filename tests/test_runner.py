@@ -50,6 +50,29 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(artifact["suite"]["events"], ["bounded detail"])
         self.controller.stop.assert_called_once()
 
+    def test_startup_only_does_not_request_quicktest_or_a_functional_suite(self):
+        self.controller.status.return_value = {"phase": "entry", "long_event_pending": False, "map_ready": False, "mod_set_matches": True}
+        launched = self.runner.run_startup()
+        self.runner._thread.join(5)
+        result = self.runner.get_run(launched["run_id"])
+        self.assertTrue(result["controller_finished"])
+        self.assertEqual(result["status"], "passed")
+        self.assertEqual(result["outcomes"]["functional"], "not_applicable")
+        self.assertFalse(self.controller.launch.call_args.kwargs["quicktest"])
+        self.controller.start_contract.assert_not_called()
+        self.controller.start_building_suite.assert_not_called()
+        self.controller.stop.assert_called_once()
+
+    def test_startup_errors_remain_visible_without_functional_claim(self):
+        self.controller.status.return_value = {"phase": "entry", "long_event_pending": False, "map_ready": False}
+        (self.directory / "process.log").write_text("ERROR Def failed\n")
+        launched = self.runner.run_startup()
+        self.runner._thread.join(5)
+        result = self.runner.get_run(launched["run_id"])
+        self.assertEqual(result["status"], "inconclusive")
+        self.assertEqual(result["outcomes"]["functional"], "not_applicable")
+        self.assertEqual(result["startup_error_candidates"], 1)
+
     def test_stop_faults_end_controller_without_claiming_process_exit_and_allow_retry(self):
         successful_stop = self.controller.stop.side_effect
         for fault in (PermissionError("denied"), subprocess.TimeoutExpired("owned", 10), RuntimeError("unexpected stop failure")):

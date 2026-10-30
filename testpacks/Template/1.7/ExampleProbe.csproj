@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework><EnableDefaultItems>false</EnableDefaultItems><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <OutputPath>../mod/1.7/Assemblies/</OutputPath><AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../ExampleProbe.cs" />
+    <Reference Include="Assembly-CSharp" HintPath="$(GamePath)/Assembly-CSharp.dll" Private="false" />
+    <Reference Include="UnityStubs" HintPath="$(GamePath)/UnityStubs.dll" Private="false" />
+    <Reference Include="RimProbe.Agent" HintPath="../../../mod/1.7/Assemblies/RimProbe.Agent.dll" Private="false" />
+  </ItemGroup>
+</Project>

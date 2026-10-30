@@ -8,8 +8,9 @@ from .controller import Controller, validate_game
 from .errors import ProbeError
 from .runner import TestRunner, capabilities
 from .inspection import inspect_mod
+from .baselines import compare_sessions
 from .schema import BehaviorContractInput
-from .plans import ScenarioPlanInput
+from .plans import ScenarioPlanInput, InteractionQueryInput
 
 
 def create_server(game_path: Path, runs_path: Path, advanced_tools: bool = False, mods_config: Path | None = None, diagnostic_mod_mismatch: bool = False) -> MCPServer:
@@ -26,6 +27,7 @@ def create_server(game_path: Path, runs_path: Path, advanced_tools: bool = False
     server = MCPServer(
         "RimProbe", version="0.1.0", lifespan=lifespan,
         instructions="Local RimWorld 1.6 and 1.7 test sessions only; version-specific Agent assemblies. No arbitrary code execution. "
+        "Typed interactions are semantic callbacks, not UI hit-tests. Startup-only checks do not generate maps. "
         "No-error logs or map readiness do not prove functional correctness. cleanup_complete means attempt ended; "
         "require cleanup_status=succeeded and owned_process_exit_verified=true for verified cleanup.",
     )
@@ -62,8 +64,13 @@ def create_server(game_path: Path, runs_path: Path, advanced_tools: bool = False
 
     @server.tool()
     async def rimprobe_run_plan(plan: ScenarioPlanInput, extra_mods: list[str] | None = None, profile_mode: str = "inherit") -> dict:
-        """Compose <=24 typed steps with run-local handles: fixture, inspect/query, normal cast/ingest/equip/move/build, wait and state assertions. Batch executes in background; no reflection/eval. Declare fixture before actions. Poll get_run(wait_seconds=10) until cleanup_complete. Read capabilities.plans first."""
+        """Compose <=24 typed steps: fixture, normal jobs, typed interactions, readiness barriers and independent state assertions. No reflection/eval. Declare fixtures first. Read capabilities.plans; poll until controller_finished and verify cleanup status/owned exit separately."""
         return await execute(runner.run_plan, plan.model_dump(exclude_unset=True, by_alias=True), extra_mods, profile_mode)
+
+    @server.tool()
+    async def rimprobe_run_startup(extra_mods: list[str] | None = None, profile_mode: str = "inherit", timeout_seconds: int = 180) -> dict:
+        """Check startup Def/resource initialization without quicktest/map generation. No functional behavior claim. Poll get_run until owned-process cleanup is verified."""
+        return await execute(runner.run_startup, extra_mods, profile_mode, timeout_seconds)
 
     @server.tool()
     async def rimprobe_run_contract(contract: BehaviorContractInput, extra_mods: list[str] | None = None, profile_mode: str = "inherit") -> dict:
@@ -71,9 +78,9 @@ def create_server(game_path: Path, runs_path: Path, advanced_tools: bool = False
         return await execute(runner.run_contract, contract.model_dump(exclude_unset=True, by_alias=True), extra_mods, profile_mode)
 
     @server.tool()
-    async def rimprobe_get_run(run_id: str, wait_seconds: int = 0) -> dict:
+    async def rimprobe_get_run(run_id: str, wait_seconds: int = 0, detail: bool = False) -> dict:
         """Read stored progress; wait_seconds=10, bounded 0..15. controller_finished/cleanup_complete mean attempt ended, not cleanup success. Require cleanup_status=succeeded and owned_process_exit_verified=true. Failed cleanup remains queryable."""
-        return await execute(runner.get_run, run_id, wait_seconds)
+        return await execute(runner.get_run, run_id, wait_seconds, detail)
 
     @server.tool()
     async def rimprobe_cancel_run(run_id: str) -> dict:
@@ -84,6 +91,31 @@ def create_server(game_path: Path, runs_path: Path, advanced_tools: bool = False
     async def rimprobe_get_artifact(run_id: str, name: str) -> dict:
         """Read one bounded named report, startup log diagnosis or cleanup artifact. No arbitrary filesystem access."""
         return await execute(runner.get_artifact, run_id, name)
+
+    @server.tool()
+    async def rimprobe_inspect_interaction(run_id: str) -> dict:
+        """Discover the active owned scenario's typed interaction and observable readiness. No launch or UI hit-testing."""
+        return await execute(runner.interact, run_id, "inspect_interaction")
+
+    @server.tool()
+    async def rimprobe_enumerate_choices(run_id: str, query: InteractionQueryInput) -> dict:
+        """Read <=8 typed candidates with run/interaction-scoped opaque handles, availability, exact map and PlanetTile layer. No label/index selection."""
+        return await execute(runner.interact, run_id, "enumerate_choices", query.model_dump())
+
+    @server.tool()
+    async def rimprobe_select_choice(run_id: str, interaction: str, choice: str) -> dict:
+        """Revalidate and select a discovered handle. Plan must be waiting at wait_until interaction_closed. Accepted callback is not an effect pass."""
+        return await execute(runner.interact, run_id, "select_choice", {"interaction": interaction, "choice": choice})
+
+    @server.tool()
+    async def rimprobe_cancel_interaction(run_id: str, interaction: str) -> dict:
+        """Cancel the discovered picker/menu using its normal cancellation entry. Requires wait_until interaction_closed; assert unchanged state separately."""
+        return await execute(runner.interact, run_id, "cancel_interaction", {"interaction": interaction})
+
+    @server.tool()
+    async def rimprobe_compare_startup(baseline_session_id: str, candidate_session_id: str) -> dict:
+        """Compare two independent stored sessions under this server's run root, read-only. Exact shared errors are candidates only; environment differences remain explicit, errors are never ignored and outcomes never upgraded."""
+        return await execute(compare_sessions, runs_path, baseline_session_id, candidate_session_id)
 
     if not advanced_tools:
         return server

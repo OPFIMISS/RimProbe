@@ -37,6 +37,16 @@ internal sealed partial class ScenarioSuite
         if (prop == "spawned") return thing.Spawned ? 1 : 0;
         if (prop == "destroyed") return thing.Destroyed ? 1 : 0;
         if (prop == "stack_count") return thing.stackCount;
+        if (prop.StartsWith("map.", StringComparison.Ordinal))
+        {
+            Map actualMap = thing.Map ?? throw new ProbeStepException("blocked", "Object is not on a map; no map identity can be inferred.");
+            return prop == "map.id" ? actualMap.uniqueID : prop == "map.tile_id" ? actualMap.Tile.tileId : actualMap.Tile.Layer.LayerID;
+        }
+        if (prop == "position.x" || prop == "position.z")
+        {
+            if (!thing.Spawned) throw new ProbeStepException("blocked", "Position observation requires a spawned object.");
+            return prop == "position.x" ? thing.Position.x : thing.Position.z;
+        }
         if (prop.StartsWith("power.", StringComparison.Ordinal))
         {
             CompPowerTrader power = (thing as ThingWithComps)?.GetComp<CompPowerTrader>() ?? throw new ProbeStepException("unsupported", "Handle has no CompPowerTrader.");
@@ -44,6 +54,7 @@ internal sealed partial class ScenarioSuite
             return power.PowerNet != null && power.PowerNet.Map == map && power.PowerNet.powerComps.Contains(power) ? 1 : 0;
         }
         Pawn pawn = thing as Pawn ?? throw new ProbeStepException("unsupported", "Property requires a Pawn.");
+        if (prop == "pawn.job_active") return pawn.CurJob == null ? 0 : 1;
         if (prop == "pawn.dead") return pawn.Dead ? 1 : 0;
         if (prop == "pawn.downed") return pawn.Downed ? 1 : 0;
         if (prop == "pawn.stunned") return pawn.stances.stunner.Stunned ? 1 : 0;
@@ -73,6 +84,7 @@ internal sealed partial class ScenarioSuite
         string[] comps = (thing as ThingWithComps)?.AllComps.Select(comp => comp.GetType().FullName ?? comp.GetType().Name).ToArray() ?? Array.Empty<string>();
         bool power = (thing as ThingWithComps)?.GetComp<CompPowerTrader>() != null;
         return new PlanObjectSnapshot { ThingId = thing.thingIDNumber, DefName = Short(thing.def.defName), ClassName = Short(thing.GetType().FullName ?? ""),
+            MapId = thing.Map?.uniqueID, TileId = thing.Map?.Tile.tileId, LayerId = thing.Map?.Tile.Layer.LayerID, X = thing.Position.x, Z = thing.Position.z,
             Cell = thing.Position.ToString(), Spawned = thing.Spawned, Destroyed = thing.Destroyed, HitPoints = thing.HitPoints, Job = pawn?.CurJob == null ? null : Short(pawn.CurJob.def.defName),
             JobAbility = pawn?.CurJob?.ability == null ? null : Short(pawn.CurJob.ability.def.defName), JobId = pawn?.CurJob?.loadID,
             Abilities = abilities.Take(8).Select(Short).ToArray(), Hediffs = hediffs.Take(8).Select(Short).ToArray(), Equipment = equipment.Take(8).Select(Short).ToArray(), Comps = comps.Take(8).Select(Short).ToArray(),
@@ -84,6 +96,7 @@ internal sealed partial class ScenarioSuite
     private void Complete(PlanStep step, string status, string detail, double? value = null, PlanObjectSnapshot? snapshot = null, PlanDefSummary[]? definitions = null, int? total = null, SuiteReport? child = null, double? baseline = null, double? compared = null)
     {
         PlanStepReport entry = new() { Id = step.Id, Op = step.Op, Status = status, Tick = Report!.TickObserved, Detail = detail,
+            Fidelity = StepFidelity(step.Op),
             Value = value, Baseline = baseline, ComparedValue = compared, Snapshot = snapshot, Definitions = definitions, TotalMatches = total, Construction = child };
         if (new[] { "failed", "blocked", "unsupported", "inconclusive", "cancelled" }.Contains(status))
         {
@@ -116,6 +129,7 @@ internal sealed partial class ScenarioSuite
         Report.Status = status;
         Report.Message = message;
         DisposeRegisteredTest();
+        CleanupAction(InteractionHub.Cleanup, lifecycleStep, "interaction_cleanup");
         CleanupAction(() =>
         {
             construction.Cancel();

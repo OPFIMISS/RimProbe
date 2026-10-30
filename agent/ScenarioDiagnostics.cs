@@ -31,7 +31,7 @@ internal sealed partial class ScenarioSuite
         {
             ElapsedTicks = Math.Max(0, elapsed),
             SampledHoldTicks = Math.Max(0, held),
-            Condition = step.Op == "assert" || step.Op == "wait_assert" ? step : null,
+            Condition = step.Op == "assert" || step.Op == "wait_assert" || step.Op == "wait_until" ? step : null,
             ObjectsTruncated = aliases.Length > 4,
             Objects = aliases.Take(4).Select(alias =>
             {

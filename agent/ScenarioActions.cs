@@ -18,6 +18,7 @@ internal sealed partial class ScenarioSuite
 
     private void Begin(PlanStep step)
     {
+        if (BeginInteractionStep(step)) return;
         if (step.Op == "query_tests")
         {
             Complete(step, "observed", "Registered compiled test keys; not arbitrary methods.", definitions: RegisteredProbeTests.Keys.Take(64).Select(key => new PlanDefSummary { DefName = key, ClassName = "registered_test" }).ToArray(), total: RegisteredProbeTests.Keys.Length);

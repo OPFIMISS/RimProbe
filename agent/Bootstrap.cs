@@ -28,6 +28,7 @@ public static class Bootstrap
             BridgeRuntime runtime = new(directory, sessionId, token);
             BridgeRuntime.Instance = runtime;
             Harmony harmony = new("rimprobe.agent");
+            InteractionHub.Install(harmony);
             harmony.Patch(
                 AccessTools.Method(typeof(Root), nameof(Root.Update)),
                 postfix: new HarmonyMethod(typeof(BridgeRuntime), nameof(BridgeRuntime.Pump)));

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Defs>
+  <HediffDef Name="RimProbeLandingMarkerBase" Abstract="True">
+    <hediffClass>HediffWithComps</hediffClass><initialSeverity>0.1</initialSeverity><maxSeverity>1</maxSeverity><isBad>false</isBad>
+  </HediffDef>
+  <HediffDef ParentName="RimProbeLandingMarkerBase"><defName>RimProbe_LandingMarkerA</defName><label>landing marker A</label><description>Independent effect A.</description></HediffDef>
+  <HediffDef ParentName="RimProbeLandingMarkerBase"><defName>RimProbe_LandingMarkerB</defName><label>landing marker B</label><description>Independent effect B.</description></HediffDef>
+  <AbilityDef Name="RimProbeLandingBase" Abstract="True">
+    <iconPath>UI/Commands/Attack</iconPath><hostile>false</hostile><targetRequired>true</targetRequired><targetWorldCell>true</targetWorldCell>
+    <casterMustBeCapableOfViolence>false</casterMustBeCapableOfViolence><disableGizmoWhileUndrafted>false</disableGizmoWhileUndrafted>
+    <cooldownTicksRange>30~30</cooldownTicksRange>
+    <verbProperties><verbClass>Verb_CastAbility</verbClass><range>15</range><warmupTime>0.1</warmupTime><targetParams><canTargetLocations>true</canTargetLocations></targetParams></verbProperties>
+  </AbilityDef>
+  <AbilityDef ParentName="RimProbeLandingBase">
+    <defName>RimProbe_LandingA</defName><label>landing A</label><description>World Job then validated map landing, effect A.</description>
+    <comps><li Class="RimProbe.InteractionFixtures.LandingProperties"><marker>RimProbe_LandingMarkerA</marker></li></comps>
+  </AbilityDef>
+  <AbilityDef ParentName="RimProbeLandingBase">
+    <defName>RimProbe_LandingB</defName><label>landing B</label><description>World Job then validated map landing, effect B.</description>
+    <comps><li Class="RimProbe.InteractionFixtures.LandingProperties"><marker>RimProbe_LandingMarkerB</marker><offerMenu>true</offerMenu></li></comps>
+  </AbilityDef>
+</Defs>

@@ -14,6 +14,8 @@
 | `agent/BridgeRuntime.cs` | Authenticated loopback transport and main-thread dispatch / 会话认证与主线程调度 |
 | `agent/Scenario*.cs` | Generic actions, typed observations and failure evidence / 通用操作、观察与异常 |
 | `agent/RegisteredTests.cs` | Trusted compiled test registration / 可信编译包注册 |
+| `agent/Interactions.cs`, `ScenarioInteractions.cs` | Fixed mechanism adapters, scoped handles and readiness / 固定机制适配、轮次句柄和就绪屏障 |
+| `src/rimprobe/baselines.py` | Independent read-only startup comparisons without suppression / 独立只读启动对照，不忽略错误 |
 
 ```mermaid
 flowchart LR
@@ -32,6 +34,8 @@ flowchart LR
 ```
 
 Network workers handle bounded messages; they do not access game objects. The game main thread consumes queued commands and advances test state machines. The controller owns process handles created for its worker, not arbitrary existing game PIDs. A Job Object ties worker lifetime to its controller.
+
+Typed live tools cooperate only while a scenario explicitly yields at `wait_until(interaction_closed)`. Fixed isolated-session adapters observe vanilla world/local targeting and FloatMenu entry, revalidate candidates, and expire handles by interaction generation. Internal field access is fixed in the adapter; caller-selected reflection paths remain forbidden. [Protocol details](interactions.md) distinguish semantic callbacks, normal Jobs and actual UI input coverage, and describe readiness limits.
 
 通信线程只处理有界消息，游戏对象在主线程访问。测试通过短次 Pump 推进，不在主线程循环等待；控制器只管理自己创建的进程句柄，不能接管玩家现有游戏。
 

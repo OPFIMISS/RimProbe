@@ -34,6 +34,25 @@ try
         Assert(rejected, "unsafe plan rejected before touching game objects");
     }
     RejectPlan(new[] { new PlanStep { Id = "evil", Op = "eval" } });
+    ScenarioSuite.ValidateSteps(new[] {
+        new PlanStep { Id = "pawn", Op = "spawn_pawn", Bind = "actor", Distance = 3, FoodFraction = 0.25, Faction = "player" },
+        new PlanStep { Id = "ready", Op = "wait_until", Condition = "interaction_ready", TimeoutSeconds = 30, StableFrames = 3 },
+        new PlanStep { Id = "choices", Op = "enumerate_choices", Target = "actor", BindChoice = "landing", CellAtTarget = true, Limit = 8 },
+        new PlanStep { Id = "choose", Op = "select_choice", Choice = "landing" },
+        new PlanStep { Id = "observe", Op = "assert", Target = "actor", Property = "map.layer_id", Compare = "eq", Value = 0 }
+    });
+    RejectPlan(new[] { new PlanStep { Id = "choose", Op = "select_choice", Choice = "future" } });
+    RejectPlan(new[] { new PlanStep { Id = "bad", Op = "enumerate_choices", Limit = 9 } });
+    RejectPlan(new[] { new PlanStep { Id = "bad", Op = "enumerate_choices", Limit = 8, X = 4 } });
+    RejectPlan(new[] { new PlanStep { Id = "bad", Op = "enumerate_choices", Limit = 8, CellAtTarget = true } });
+    RejectPlan(new[] { new PlanStep { Id = "bad", Op = "wait_until", Condition = "IsTargeting", TimeoutSeconds = 30, StableFrames = 3 } });
+    RejectPlan(new[] { new PlanStep { Id = "bad", Op = "wait_until", Condition = "interaction_ready", TimeoutSeconds = 30, StableFrames = 1 } });
+    RejectPlan(new[] { new PlanStep { Id = "bad", Op = "wait_until", Condition = "ability_job_finished", TimeoutSeconds = 30, StableFrames = 3 } });
+    Assert(ScenarioSuite.StepFidelity("cast") == "normal_game_action" && ScenarioSuite.StepFidelity("select_choice") == "validated_semantic_callback"
+        && ScenarioSuite.StepFidelity("wait_until") == "state_observation", "semantic callbacks and readiness cannot masquerade as UI hit tests or normal-job effect passes");
+    InteractionChoice layered = new() { Handle = new string('a', 32), MapId = 7, TileId = 19, LayerId = 3, Available = false, ObjectType = "MapParent" };
+    string layeredJson = Encoding.UTF8.GetString(WireJson.Serialize(layered));
+    Assert(layeredJson.Contains("\"layer_id\":3") && layeredJson.Contains("\"tile_id\":19") && layeredJson.Contains("\"map_id\":7"), "candidate evidence preserves map identity and full PlanetTile layer separately");
     RejectPlan(new[] { new PlanStep { Id = "find", Op = "find_thing", Bind = "other", DefName = "Human", Radius = 30 },
         new PlanStep { Id = "order", Op = "move", Actor = "other", Target = "other" } });
     RejectPlan(new[] { new PlanStep { Id = "wait", Op = "wait", Ticks = 1 },

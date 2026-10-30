@@ -4,6 +4,8 @@
 
 This guide uses PowerShell on Windows. Paths and identifiers are examples: replace them for your machine and target mod. No game, Harmony or target-mod assemblies are distributed here.
 
+For a tool-capable agent, start by sending the [copyable introduction](../README.en.md#fastest-start-give-your-agent-the-repository-url): repository URL, game/mod paths and “install/configure RimProbe, then use RimProbe for real-game testing.” Installation/configuration must finish before this phrase can invoke tools. Already configured clients can go straight to doctor/capabilities, then startup and code-derived effects.
+
 ## 1. Install the controller and Agent
 
 Follow [the source installation commands](../README.en.md#install-from-source). Install Python dependencies into the checkout's virtual environment, compile the matching Agent using your real game/Harmony references, then run `install-agent`.
@@ -60,8 +62,12 @@ It reads bounded `.cs`/`.xml` hints from a directory you are authorized to inspe
 | `rimprobe_get_run` | Poll progress and cleanup outcome |
 | `rimprobe_get_artifact` | Read a named evidence artifact |
 | `rimprobe_cancel_run` | Cancel, or retry cleanup of the original retained owned session |
+| `rimprobe_run_startup` | Check loading at the main menu without quicktest/map generation |
+| `rimprobe_inspect_interaction` / `rimprobe_enumerate_choices` | Discover typed pickers/menus and bounded opaque candidates |
+| `rimprobe_select_choice` / `rimprobe_cancel_interaction` | Revalidate a handle and select/cancel during an explicit plan yield |
+| `rimprobe_compare_startup` | Read-only comparison of independent stored session startup candidates |
 
-Each plan creates its own background game/profile/map. It is not an interactive persistent debugger. Normal player games are not attached to or terminated.
+Each plan creates its own background game/profile/map; startup-only runs do not request a map. Typed live interactions cooperate with a bounded plan explicitly waiting at `wait_until(interaction_closed)`. See [the bilingual interaction guide](interactions.md). This is not a persistent debugger. Normal player games are not attached to or terminated.
 
 ### Construction example
 

@@ -62,6 +62,7 @@ internal sealed class BridgeDescriptor
 [DataContract]
 internal sealed class StateSnapshot
 {
+    [DataMember(Name = "interaction", EmitDefaultValue = false)] public InteractionSnapshot? Interaction { get; set; }
     [DataMember(Name = "windows")] public string[] Windows { get; set; } = Array.Empty<string>();
     [DataMember(Name = "quicktest_requested")] public bool QuicktestRequested { get; set; }
     [DataMember(Name = "registered_tests")] public string[] RegisteredTests { get; set; } = Array.Empty<string>();

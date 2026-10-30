@@ -1,5 +1,15 @@
 # RimProbe
 
+## 最快开始：把地址交给你的 Agent
+
+把下面这段话发给**能调用本机工具的 AI / Agent**，替换游戏和目标 Mod 路径即可：
+
+> 项目：https://github.com/OPFIMISS/RimProbe 。请阅读中英文 README 和 docs/GETTING_STARTED.md，安装并配置 RimProbe MCP，使用 RimProbe 对我的 Mod 进行实测。游戏目录：`D:/Steam/steamapps/common/RimWorld`；目标 Mod：`请填写实际路径`。先检查版本和能力，再围绕实际代码效果设计测试：启动加载 → 准备对象 → 正常动作 → 独立效果断言 → 读取错误和清理证据。保持玩家配置、DLC 和排序，使用一次性 profile 和后台私有桌面；明确报告未覆盖、不支持及人工仍需验证的部分。
+
+Agent 可以先执行 `git clone https://github.com/OPFIMISS/RimProbe.git`，再按下方命令建立虚拟环境、构建和安装匹配版本的 Agent、配置 MCP stdio。**发链接或说“使用 RimProbe 进行实测”本身不会自动安装 MCP**；需要本机工具权限、可用游戏、构建环境及支持 MCP 的客户端。已经配置好时，直接说“使用 RimProbe 对这个 Mod 进行实测，先做启动检查，再验证代码中的实际效果”即可。
+
+2026-10-30 更新：新增启动检查、带句柄的通用交互、就绪屏障、跨地图状态观察、精简轮询及只读启动基线对照。148 项离线测试和双版本编译通过；1.7 两 Def 专项效果通过，启动错误仍使整体保持 inconclusive。见 [通用交互说明](docs/interactions.md) 和 [验证记录](docs/validation/2026-10-30-interactions.md)。
+
 **让 AI / Agent 在后台启动真实 RimWorld，执行 Mod 功能测试并获取结构化证据。**
 
 [English README](README.en.md) · [快速上手 / Quick start](docs/GETTING_STARTED.md) · [中文 Agent 说明书](docs/AGENT_QUICKSTART.zh-CN.md) · [架构与扩展](docs/ARCHITECTURE.md)
@@ -32,9 +42,9 @@ RimProbe 是本地 MCP 服务和游戏内 Agent Mod。AI 根据实际源码与 D
 | 版本 | 目标与引用 | 验证状态 |
 |---|---|---|
 | 1.6 | net472，Unity/Mono，独立 Managed 引用 | 真实引用编译和离线检查通过；尚无真机验收 |
-| 1.7 | net10.0，Waylith，独立根目录引用 | 既往限定构建有真机记录；最新异常/清理改进仅完成编译和离线验证 |
+| 1.7 | net10.0，Waylith，独立根目录引用 | 分轮记录游戏内证据；最新通用交互专项见下方验收记录，不等于全量真机通过 |
 
-两版输出和中间目录分离。最近记录为 **131 项 Python 离线测试通过**，双版本真实引用编译和 C# 离线检查通过；这不表示另一 Mod 已测试，也不表示最新构建已完成全量真机回归。见 [验收状态](docs/ACCEPTANCE_STATUS.md)。
+两版输出和中间目录分离。第十轮已增加通用交互/启动/基线回归检查；离线、真实引用编译和游戏内结果分别记录，不能替代另一 Mod 的验证。见 [验收状态](docs/ACCEPTANCE_STATUS.md)。
 
 ## 快速安装
 
@@ -80,7 +90,7 @@ py -3 -m venv .venv
 4. `rimprobe_get_run(run_id, wait_seconds=10)` 等到 `controller_finished=true`；成功回收还须 `cleanup_status="succeeded"` 且 `owned_process_exit_verified=true`。
 5. 用 `rimprobe_get_artifact` 读取所需报告、日志诊断、实际排序和 stop 证据；用 `rimprobe_cancel_run` 取消或重试原所属 session 的清理。
 
-默认九工具，另有 `rimprobe_inspect_mod` 提供授权目录的源码/Def 提示。无断言的发现计划不获功能 passed；`cleanup_complete` 只是“清理尝试结束”的兼容别名。
+默认 15 个工具，包括授权源码/Def 提示、无需地图的 `rimprobe_run_startup`、四个交互工具及只读启动对照。`get_run` 默认返回精简进度和分层结果，`detail:true` 可取详情。无断言的发现计划不获功能 passed；`cleanup_complete` 只是“清理尝试结束”的兼容别名。
 
 完整建筑/技能参数见 [快速上手](docs/GETTING_STARTED.md) 和 [中文说明书](docs/AGENT_QUICKSTART.zh-CN.md)。首次使用不需要手动打开游戏。
 
@@ -117,7 +127,7 @@ AI / MCP client → Python stdio server → runner/controller
 
 离线测试不自动启动游戏。真实引用编译、离线测试和真机验收分别记录。本机 `runs/` 原始证据不随源码发布；`docs/validation/` 是历史摘要，引用的本机文件不是下载附件。
 
-当前缺口包括随机 quicktest、存读档、燃料/生产账单、任意技能框架、UI 像素/命中、完整程序集 provenance、基线差异和历史 MCP 查询。工具仅保留本实例最近运行，旧证据需从本地目录读取。passed 只覆盖列明断言，无红字、排队成功、冷却开始或建成建筑不能替代实际效果。
+当前缺口包括随机 quicktest、存读档、燃料/生产账单、Caravan、任意技能框架、source/verb Targeter 多段链、裸世界 tile、UI 像素/命中、完整程序集 provenance 和一般历史 MCP 查询。启动对照可只读访问同一 run root 的两个 session；一般工具仍只保留本实例最近运行。passed 只覆盖列明断言，无红字、动作接受或就绪不能替代实际效果。
 
 ## 文档与分发
 

@@ -1,5 +1,7 @@
 # 编译式测试包
 
+可直接复制并构建的双版本 [最小模板](../testpacks/Template/README.md) 已提供；默认返回 inconclusive，需补真实业务动作/observer 后才能有功能通过。两个独立 Def 的可执行机制样例见 [InteractionFixtures](../testpacks/InteractionFixtures/InteractionFixtures.cs) 与 [交互协议](interactions.md)。
+
 RimProbe 的通用计划继续负责 Pawn、物品、建造、施放、数值观察。剧情、专用窗口及自定义组件无法由现有数值属性表达时，可以增加独立测试包；不需要把每个 Mod 的逻辑写进 Agent。
 
 ## 契约

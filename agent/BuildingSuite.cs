@@ -9,6 +9,7 @@ namespace RimProbe.Agent;
 [DataContract]
 internal sealed class SuiteOptions
 {
+    [DataMember(Name = "interaction")] public InteractionQuery? Interaction { get; set; }
     [DataMember(Name = "construction_only")] public bool ConstructionOnly { get; set; }
     [DataMember(Name = "run_id")] public string? RunId { get; set; }
     [DataMember(Name = "def_name")] public string? DefName { get; set; }
@@ -50,6 +51,7 @@ internal sealed class PowerEvidence
 [DataContract]
 internal sealed class SuiteReport
 {
+    [DataMember(Name = "interaction", EmitDefaultValue = false)] public InteractionSnapshot? Interaction { get; set; }
     [DataMember(Name = "primary_failure", EmitDefaultValue = false)] public ProbeFailure? PrimaryFailure { get; set; }
     [DataMember(Name = "cleanup_failures", EmitDefaultValue = false)] public List<ProbeFailure> CleanupFailures { get; set; } = new();
     [DataMember(Name = "failure_evidence_truncated", EmitDefaultValue = false)] public bool FailureEvidenceTruncated { get; set; }

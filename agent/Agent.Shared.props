@@ -27,6 +27,8 @@
     <Compile Include="../ScenarioObservations.cs" />
     <Compile Include="../ScenarioDiagnostics.cs" />
     <Compile Include="../ScenarioFailures.cs" />
+    <Compile Include="../Interactions.cs" />
+    <Compile Include="../ScenarioInteractions.cs" />
     <Compile Include="../AbilitySuite.cs" />
     <Compile Include="../ErrorJournal.cs" />
     <Compile Include="../ItemSuite.cs" />

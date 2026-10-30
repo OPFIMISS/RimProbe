@@ -126,7 +126,12 @@ def install_agent(game_path: Path, mod_source: Path, update_owned: bool = False)
         backup.parent.mkdir(exist_ok=True)
         shutil.copytree(mod_source, staging)
         atomic_json(staging / ".rimprobe-install.json", {"files": source_files})
-        destination.rename(backup)
+        try:
+            destination.rename(backup)
+        except OSError:
+            # This directory was just created by this call and has not been exposed as an install.
+            shutil.rmtree(staging)
+            raise
         try:
             staging.rename(destination)
         except OSError:
@@ -262,6 +267,11 @@ class Controller:
 
     def cancel_suite(self) -> dict:
         return self._snapshot("cancel_suite", 5)
+
+    def interact(self, command: str, run_id: str, query: dict) -> dict:
+        if command not in {"inspect_interaction", "enumerate_choices", "select_choice", "cancel_interaction"}:
+            raise ProbeError("unsupported", "Unknown typed interaction command.")
+        return self._snapshot(command, 5, {"run_id": run_id, "interaction": query})
 
     def start_contract(self, parameters: dict) -> dict:
         with self._lock:

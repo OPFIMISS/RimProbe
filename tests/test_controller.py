@@ -271,6 +271,24 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(raised.exception.code, "modified_install")
         self.assertEqual((installed / "user-file.txt").read_text(), "keep")
 
+    def test_locked_install_is_preserved_and_temporary_staging_is_reclaimed(self):
+        source = self.root / "agent-source"
+        (source / "About").mkdir(parents=True)
+        (source / "About/About.xml").write_text("<ModMetaData><packageId>rimprobe.agent</packageId></ModMetaData>")
+        (source / "1.7/Assemblies").mkdir(parents=True)
+        (source / "1.7/Assemblies/RimProbe.Agent.dll").write_bytes(b"agent-fixture")
+        installed = self.game / "Mods/RimProbe"
+        (installed / "About").mkdir()
+        (installed / "About/About.xml").write_bytes((source / "About/About.xml").read_bytes())
+        install_agent(self.game, source, True)
+        before = {path.relative_to(installed): path.read_bytes() for path in installed.rglob("*") if path.is_file()}
+        (source / "1.7/Assemblies/RimProbe.Agent.dll").write_bytes(b"new-agent")
+        with patch.object(Path, "rename", side_effect=PermissionError("game is using DLL")):
+            with self.assertRaises(PermissionError):
+                install_agent(self.game, source, True)
+        self.assertEqual(before, {path.relative_to(installed): path.read_bytes() for path in installed.rglob("*") if path.is_file()})
+        self.assertEqual(list(self.game.glob(".RimProbe-stage-*")), [])
+
 
 if __name__ == "__main__":
     unittest.main()

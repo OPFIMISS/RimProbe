@@ -60,6 +60,49 @@ class ItemAction(Step):
     target: Handle
 
 
+class BeginAbility(Step):
+    op: Literal["begin_ability"]
+    actor: Handle
+    def_name: Identifier
+
+
+class InteractionStep(Step):
+    op: Literal["inspect_interaction", "enumerate_choices", "cancel_interaction"]
+    target: Handle | None = None
+    bind_choice: Handle | None = None
+    cell_at_target: bool = False
+    x: int | None = Field(default=None, ge=0, le=9999)
+    z: int | None = Field(default=None, ge=0, le=9999)
+    offset: int = Field(default=0, ge=0, le=100000)
+    limit: int = Field(default=8, ge=1, le=8)
+
+
+class SelectChoice(Step):
+    op: Literal["select_choice"]
+    choice: Handle
+
+
+class WaitUntil(Step):
+    op: Literal["wait_until"]
+    condition: Literal["interaction_ready", "interaction_closed", "map_ready", "ability_job_finished"]
+    actor: Handle | None = None
+    timeout_seconds: int = Field(default=30, ge=1, le=120)
+    stable_frames: int = Field(default=3, ge=2, le=120)
+    cancel_if: Literal["actor_unavailable"] | None = None
+
+
+class InteractionQueryInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    interaction: Annotated[str, Field(pattern=r"^[a-f0-9]{32}$")] | None = None
+    choice: Annotated[str, Field(pattern=r"^[a-f0-9]{32}$")] | None = None
+    map_id: int | None = Field(default=None, ge=0, le=2147483647)
+    thing_id: int | None = Field(default=None, ge=0, le=2147483647)
+    x: int | None = Field(default=None, ge=0, le=9999)
+    z: int | None = Field(default=None, ge=0, le=9999)
+    offset: int = Field(default=0, ge=0, le=100000)
+    limit: int = Field(default=8, ge=1, le=8)
+
+
 class Move(Step):
     op: Literal["move"]
     actor: Handle
@@ -109,7 +152,7 @@ class Wait(Step):
     ticks: int = Field(ge=1, le=60000)
 
 
-NumericProperty = Literal["hp", "spawned", "destroyed", "stack_count", "pawn.dead", "pawn.downed", "pawn.stunned", "pawn.food", "pawn.injury", "pawn.hediff_count", "pawn.ability_cooldown", "pawn.ability_casting", "pawn.equipped", "pawn.distance_to", "power.watts", "power.connected"]
+NumericProperty = Literal["hp", "spawned", "destroyed", "stack_count", "map.id", "map.tile_id", "map.layer_id", "position.x", "position.z", "pawn.job_active", "pawn.dead", "pawn.downed", "pawn.stunned", "pawn.food", "pawn.injury", "pawn.hediff_count", "pawn.ability_cooldown", "pawn.ability_casting", "pawn.equipped", "pawn.distance_to", "power.watts", "power.connected"]
 
 
 class Assertion(Step):
@@ -141,7 +184,7 @@ class WaitAssertion(Assertion):
     hold_ticks: int = Field(default=0, ge=0, le=6000)
 
 
-PlanStepInput = Annotated[SpawnPawn | SpawnItem | FixtureHediff | GrantAbility | Cast | ItemAction | Move | Build | Inspect | FindThing | QueryDefs | QueryTests | RegisteredTest | Measure | Wait | ImmediateAssertion | WaitAssertion, Field(discriminator="op")]
+PlanStepInput = Annotated[SpawnPawn | SpawnItem | FixtureHediff | GrantAbility | Cast | ItemAction | BeginAbility | InteractionStep | SelectChoice | WaitUntil | Move | Build | Inspect | FindThing | QueryDefs | QueryTests | RegisteredTest | Measure | Wait | ImmediateAssertion | WaitAssertion, Field(discriminator="op")]
 
 
 class ScenarioPlanInput(BaseModel):
@@ -166,7 +209,7 @@ class ScenarioPlanInput(BaseModel):
 
 _named_properties = {"pawn.hediff_count": "HediffDef", "pawn.ability_cooldown": "AbilityDef", "pawn.equipped": "ThingDef"}
 _fixture_ops = {"spawn_pawn", "spawn_item", "fixture_hediff", "grant_ability"}
-_normal_ops = {"cast", "ingest", "equip", "move", "build", "assert", "wait_assert", "wait", "measure", "registered_test"}
+_normal_ops = {"cast", "ingest", "equip", "move", "build", "assert", "wait_assert", "wait", "measure", "registered_test", "begin_ability", "enumerate_choices", "select_choice", "cancel_interaction", "wait_until"}
 
 
 def validate_plan(payload: dict) -> dict:
@@ -187,7 +230,7 @@ def validate_plan(payload: dict) -> dict:
         raise ProbeError("invalid_plan", "Normalized plan exceeds 24 KiB including default fields.")
     if any(len(ref) > 512 for ref in result["source_refs"]):
         raise ProbeError("invalid_plan", "source_refs entries are descriptive and bounded to 512 characters.")
-    ids, handles, values = set(), {}, set()
+    ids, handles, values, choices = set(), {}, set(), set()
     active = False
     for step in result["steps"]:
         if step["id"] in ids:
@@ -201,8 +244,24 @@ def validate_plan(payload: dict) -> dict:
             alias = step.get(field)
             if alias is not None and alias not in handles:
                 raise ProbeError("invalid_plan", f"{step['id']}: {field} must reference an earlier bound object.")
-        if "actor" in step and handles[step["actor"]] != "pawn":
+        if step.get("actor") is not None and handles[step["actor"]] != "pawn":
             raise ProbeError("invalid_plan", "Action actor must be a fixture Pawn.")
+        if op == "wait_until" and ((step["condition"] == "ability_job_finished" or step["cancel_if"] is not None) and step["actor"] is None):
+            raise ProbeError("invalid_plan", "This barrier/cancellation condition requires actor.")
+        if op in ("inspect_interaction", "enumerate_choices", "cancel_interaction"):
+            if (step["x"] is None) != (step["z"] is None):
+                raise ProbeError("invalid_plan", "Cell needs both x and z.")
+            if op != "enumerate_choices" and any(step.get(key) is not None for key in ("target", "bind_choice", "x", "z")):
+                raise ProbeError("invalid_plan", "Only enumerate_choices accepts candidate selectors.")
+            if step["cell_at_target"] and (op != "enumerate_choices" or step["target"] is None or step["x"] is not None):
+                raise ProbeError("invalid_plan", "cell_at_target requires an object target and excludes explicit coordinates.")
+            alias = step.get("bind_choice")
+            if alias is not None:
+                if alias in choices:
+                    raise ProbeError("invalid_plan", "Choice aliases cannot be rebound.")
+                choices.add(alias)
+        if op == "select_choice" and step["choice"] not in choices:
+            raise ProbeError("invalid_plan", "choice requires an earlier enumerate_choices bind_choice.")
         if op in ("assert", "wait_assert", "measure"):
             prop = step["property"]
             if (prop in _named_properties) != (step.get("def_name") is not None):
@@ -230,9 +289,10 @@ def plan_catalog() -> dict:
     return {
         "schema": 1, "entry": "rimprobe_run_plan", "maximum_steps": 24,
         "fixture": sorted(_fixture_ops),
-        "actions": ["cast", "ingest", "equip", "move", "build", "registered_test"],
+        "actions": ["cast", "begin_ability", "select_choice", "cancel_interaction", "ingest", "equip", "move", "build", "registered_test"],
         "test_packs": "Optional explicitly installed compiled packs register bounded keys with independent checks. No runtime code, method or type strings. query_tests discovers available keys inside the loaded game.",
-        "discovery": ["query_defs", "find_thing", "inspect", "measure", "query_tests"], "control": ["wait", "assert", "wait_assert"],
+        "discovery": ["query_defs", "find_thing", "inspect", "measure", "query_tests", "inspect_interaction", "enumerate_choices"], "control": ["wait", "assert", "wait_assert", "wait_until"],
+        "interactions": {"entry": "begin_ability uses the granted standard Ability command", "kinds": ["world_target", "map_target_callback", "float_menu"], "selection": "Run/interaction-scoped opaque handles; revalidated before selection. Plan bind_choice requires exactly one matching candidate. Live tools require run_id. Standard local verb Targeter chains are unsupported; cast uses normal jobs instead.", "fidelity": "validated_semantic_callback, not real UI input/hit testing", "barriers": "wait_until uses monotonic phase timeout and consecutive main-thread frame samples; observable readiness does not prove renderer rebuild completion"},
         "numeric_properties": list(NumericProperty.__args__),
         "sequential_casts": "After asserting effects, wait_assert actor pawn.ability_casting eq 0 before another action. This observes the current standard Ability Job only; cooldown and effects need separate assertions.",
         "failure_evidence": "Failed/blocked/unsupported/inconclusive/cancelled steps retain failure_context before job cleanup: condition, elapsed/sample-hold ticks and at most four related object snapshots including job_id/job_ability. Diagnostic errors are bounded and do not replace the primary outcome.",

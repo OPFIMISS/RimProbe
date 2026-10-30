@@ -1,5 +1,7 @@
 # 通用组合计划
 
+2026-10-30：当前共 24 种操作，仍最多 24 步。新增 begin_ability、四个交互操作及 wait_until；readiness 不计为效果断言。完整机制链和边界见 [通用交互](interactions.md)，可执行示例见 [interaction-landing.json](../examples/plans/interaction-landing.json)。
+
 RimProbe 的主要扩展方向是可组合的游戏操作与观察。一个新 AbilityDef、物品或建筑只要使用已有正常入口和可观察状态，就可以换 Def、前置条件和断言来测试，无需修改 Agent DLL。现有固定 recipe 是快捷模板，不是未来逐物品适配的开发路线。
 
 ## 最短使用流程

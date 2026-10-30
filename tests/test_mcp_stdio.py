@@ -33,7 +33,7 @@ class McpStdioTests(unittest.IsolatedAsyncioTestCase):
                     initialized = await session.initialize()
                     self.assertEqual(initialized.server_info.name, "RimProbe")
                     listed = await session.list_tools()
-                    self.assertEqual(len(listed.tools), 9)
+                    self.assertEqual(len(listed.tools), 15)
                     doctor = await session.call_tool("rimprobe_doctor", {})
                     content = json.loads(next(item.text for item in doctor.content if item.type == "text"))
                     self.assertEqual(content["mod_version"], version)

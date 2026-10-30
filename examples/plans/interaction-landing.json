@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "intent": "Normal world Ability Job opens a validated landing callback; assert actual marker, map identity, complete layer and exact cell independently.",
+  "source_refs": ["testpacks/InteractionFixtures/InteractionFixtures.cs"],
+  "timeout_seconds": 120,
+  "steps": [
+    {"id":"pawn","op":"spawn_pawn","bind":"actor"},
+    {"id":"grant","op":"grant_ability","actor":"actor","def_name":"RimProbe_LandingA"},
+    {"id":"map_before","op":"measure","target":"actor","property":"map.id","bind_value":"map_before"},
+    {"id":"layer_before","op":"measure","target":"actor","property":"map.layer_id","bind_value":"layer_before"},
+    {"id":"x_before","op":"measure","target":"actor","property":"position.x","bind_value":"x_before"},
+    {"id":"z_before","op":"measure","target":"actor","property":"position.z","bind_value":"z_before"},
+    {"id":"command","op":"begin_ability","actor":"actor","def_name":"RimProbe_LandingA"},
+    {"id":"world_ready","op":"wait_until","condition":"interaction_ready"},
+    {"id":"world_choice","op":"enumerate_choices","target":"actor","bind_choice":"world"},
+    {"id":"choose_world","op":"select_choice","choice":"world"},
+    {"id":"landing_ready","op":"wait_until","condition":"interaction_ready"},
+    {"id":"landing_choice","op":"enumerate_choices","target":"actor","cell_at_target":true,"bind_choice":"landing"},
+    {"id":"choose_landing","op":"select_choice","choice":"landing"},
+    {"id":"marker","op":"wait_assert","target":"actor","property":"pawn.hediff_count","def_name":"RimProbe_LandingMarkerA","compare":"eq","value":1,"hold_ticks":5},
+    {"id":"same_map","op":"assert","target":"actor","property":"map.id","relative_to":"map_before","compare":"eq","value":0},
+    {"id":"same_layer","op":"assert","target":"actor","property":"map.layer_id","relative_to":"layer_before","compare":"eq","value":0},
+    {"id":"exact_x","op":"assert","target":"actor","property":"position.x","relative_to":"x_before","compare":"eq","value":0},
+    {"id":"exact_z","op":"assert","target":"actor","property":"position.z","relative_to":"z_before","compare":"eq","value":0},
+    {"id":"job_finished","op":"wait_until","condition":"ability_job_finished","actor":"actor"}
+  ]
+}

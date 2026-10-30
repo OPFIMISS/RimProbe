@@ -37,11 +37,25 @@ internal sealed class PlanStep
     [DataMember(Name = "value")] public double Value { get; set; }
     [DataMember(Name = "ticks")] public int Ticks { get; set; }
     [DataMember(Name = "hold_ticks")] public int HoldTicks { get; set; }
+    [DataMember(Name = "choice")] public string? Choice { get; set; }
+    [DataMember(Name = "bind_choice")] public string? BindChoice { get; set; }
+    [DataMember(Name = "cell_at_target")] public bool CellAtTarget { get; set; }
+    [DataMember(Name = "x")] public int? X { get; set; }
+    [DataMember(Name = "z")] public int? Z { get; set; }
+    [DataMember(Name = "condition")] public string? Condition { get; set; }
+    [DataMember(Name = "timeout_seconds")] public int TimeoutSeconds { get; set; }
+    [DataMember(Name = "stable_frames")] public int StableFrames { get; set; }
+    [DataMember(Name = "cancel_if")] public string? CancelIf { get; set; }
 }
 
 [DataContract]
 internal sealed class PlanObjectSnapshot
 {
+    [DataMember(Name = "map_id")] public int? MapId { get; set; }
+    [DataMember(Name = "tile_id")] public int? TileId { get; set; }
+    [DataMember(Name = "layer_id")] public int? LayerId { get; set; }
+    [DataMember(Name = "x")] public int X { get; set; }
+    [DataMember(Name = "z")] public int Z { get; set; }
     [DataMember(Name = "thing_id")] public int ThingId { get; set; }
     [DataMember(Name = "def_name")] public string DefName { get; set; } = "";
     [DataMember(Name = "class")] public string ClassName { get; set; } = "";
@@ -70,6 +84,8 @@ internal sealed class PlanDefSummary
 [DataContract]
 internal sealed class PlanStepReport
 {
+    [DataMember(Name = "fidelity")] public string Fidelity { get; set; } = "state_observation";
+    [DataMember(Name = "interaction", EmitDefaultValue = false)] public InteractionSnapshot? Interaction { get; set; }
     [DataMember(Name = "id")] public string Id { get; set; } = "";
     [DataMember(Name = "op")] public string Op { get; set; } = "";
     [DataMember(Name = "status")] public string Status { get; set; } = "";
@@ -89,8 +105,8 @@ internal sealed class PlanStepReport
 
 internal sealed partial class ScenarioSuite
 {
-    private static readonly string[] Operations = { "spawn_pawn", "spawn_item", "fixture_hediff", "grant_ability", "cast", "ingest", "equip", "move", "build", "inspect", "query_defs", "wait", "assert", "wait_assert", "find_thing", "measure", "query_tests", "registered_test" };
-    private static readonly string[] NumericProperties = { "hp", "spawned", "destroyed", "stack_count", "pawn.dead", "pawn.downed", "pawn.stunned", "pawn.food", "pawn.injury", "pawn.hediff_count", "pawn.ability_cooldown", "pawn.ability_casting", "pawn.equipped", "pawn.distance_to", "power.watts", "power.connected" };
+    private static readonly string[] Operations = { "spawn_pawn", "spawn_item", "fixture_hediff", "grant_ability", "cast", "ingest", "equip", "move", "build", "inspect", "query_defs", "wait", "assert", "wait_assert", "find_thing", "measure", "query_tests", "registered_test", "begin_ability", "inspect_interaction", "enumerate_choices", "select_choice", "cancel_interaction", "wait_until" };
+    private static readonly string[] NumericProperties = { "hp", "spawned", "destroyed", "stack_count", "map.id", "map.tile_id", "map.layer_id", "position.x", "position.z", "pawn.job_active", "pawn.dead", "pawn.downed", "pawn.stunned", "pawn.food", "pawn.injury", "pawn.hediff_count", "pawn.ability_cooldown", "pawn.ability_casting", "pawn.equipped", "pawn.distance_to", "power.watts", "power.connected" };
     private readonly Dictionary<string, double> values = new();
     private readonly Dictionary<string, Thing> handles = new();
     private readonly Dictionary<Pawn, HashSet<int>> jobs = new();
@@ -115,6 +131,8 @@ internal sealed partial class ScenarioSuite
         if (Report?.RunId == options.RunId) return;
         if (Report?.Status == "running") throw new InvalidOperationException("A plan is already running.");
         ValidateSteps(request.Steps);
+        InteractionHub.Arm();
+        choiceAliases.Clear();
         contract = request;
         handles.Clear();
         values.Clear();
@@ -136,12 +154,14 @@ internal sealed partial class ScenarioSuite
         HashSet<string> bound = new();
         HashSet<string> pawns = new();
         HashSet<string> measured = new();
+        HashSet<string> choices = new();
         bool active = false;
         foreach (PlanStep step in steps)
         {
             if (!Regex.IsMatch(step.Id, "^[A-Za-z][A-Za-z0-9_]{0,31}$") || !ids.Add(step.Id) || !Operations.Contains(step.Op))
                 throw new ArgumentException("Unknown action or duplicate/invalid step id.");
             if (step.Op == "registered_test" && (step.Key == null || !Regex.IsMatch(step.Key, "^[a-z][a-z0-9_.]{0,79}\\z"))) throw new ArgumentException("Invalid registered test key.");
+            ValidateInteractionStep(step, choices);
             bool fixture = new[] { "spawn_pawn", "spawn_item", "fixture_hediff", "grant_ability" }.Contains(step.Op);
             if (fixture && active) throw new ArgumentException("Fixture setup must precede actions and assertions.");
             active |= !fixture && step.Op != "inspect" && step.Op != "query_defs" && step.Op != "find_thing" && step.Op != "query_tests";
@@ -157,7 +177,7 @@ internal sealed partial class ScenarioSuite
                 || step.FoodFraction < 0.05 || step.FoodFraction > 0.8 || double.IsNaN(step.FoodFraction)
                 || step.Faction != "player" && step.Faction != "hostile")) throw new ArgumentException("Invalid Pawn fixture.");
             if (step.Op == "spawn_item" && (step.Bind == null || step.Count < 1 || step.Count > 75)) throw new ArgumentException("Invalid item fixture.");
-            if (new[] { "cast", "ingest", "equip", "move", "grant_ability", "fixture_hediff" }.Contains(step.Op) && step.Actor == null) throw new ArgumentException("Actor required.");
+            if (new[] { "cast", "begin_ability", "ingest", "equip", "move", "grant_ability", "fixture_hediff" }.Contains(step.Op) && step.Actor == null) throw new ArgumentException("Actor required.");
             if (new[] { "cast", "ingest", "equip", "move", "inspect", "assert", "wait_assert", "measure" }.Contains(step.Op) && step.Target == null) throw new ArgumentException("Target required.");
             if (step.Op == "build" && step.Bind == null) throw new ArgumentException("Build requires a binding.");
             if (step.Op == "query_defs" && (step.Query?.Length > 80 || step.Offset < 0 || step.Offset > 100000 || step.Limit < 1 || step.Limit > 8
@@ -189,7 +209,14 @@ internal sealed partial class ScenarioSuite
         try
         {
             if (clock.Elapsed.TotalSeconds >= contract!.TimeoutSeconds) { FailCurrentStep("inconclusive", "Scenario wall-clock budget exhausted."); return; }
-            if (LongEventHandler.AnyEventNowOrWaiting || Current.ProgramState != ProgramState.Playing || Current.Game?.CurrentMap == null) return;
+            if (LongEventHandler.AnyEventNowOrWaiting || Current.ProgramState != ProgramState.Playing || Current.Game?.CurrentMap == null)
+            {
+                barrierSamples = 0; barrierIdentity = null;
+                if (stepTick >= 0 && contract.Steps != null && index < contract.Steps.Length && contract.Steps[index].Op == "wait_until"
+                    && barrierClock.Elapsed.TotalSeconds >= contract.Steps[index].TimeoutSeconds)
+                    FailCurrentStep("inconclusive", "Readiness phase timeout while game is loading.");
+                return;
+            }
             Report.TickObserved = Find.TickManager.TicksGame;
             if (map == null)
             {
@@ -198,7 +225,7 @@ internal sealed partial class ScenarioSuite
                 PreflightDefinitions();
                 Find.TickManager.CurTimeSpeed = TimeSpeed.Normal;
             }
-            if (registeredTest == null && map != Current.Game.CurrentMap) { FailCurrentStep("blocked", "Scenario map changed."); return; }
+            if (registeredTest == null && map != Current.Game.CurrentMap) map = Current.Game.CurrentMap;
             if (Report.TickObserved - Report.TickStarted >= contract.MaxTicks) { FailCurrentStep("inconclusive", "Scenario Tick budget exhausted."); return; }
             if (index >= contract.Steps!.Length)
             {
@@ -214,6 +241,7 @@ internal sealed partial class ScenarioSuite
             else if (step.Op == "wait_assert") ObserveAssertion(step, true);
             else if (step.Op == "build") ObserveBuild(step);
             else if (step.Op == "registered_test") ObserveRegisteredTest(step);
+            else if (step.Op == "wait_until") ObserveBarrier(step);
         }
         catch (Exception error) { HandleFailure(error); }
     }
@@ -252,7 +280,7 @@ internal sealed partial class ScenarioSuite
         {
             if (step.Op == "spawn_pawn") RequireDef<PawnKindDef>(step.DefName);
             else if (step.Op == "spawn_item" || step.Op == "build" || step.Op == "find_thing" || step.Property == "pawn.equipped") RequireDef<ThingDef>(step.DefName);
-            else if (step.Op == "grant_ability" || step.Op == "cast" || step.Property == "pawn.ability_cooldown") RequireDef<AbilityDef>(step.DefName);
+            else if (step.Op == "grant_ability" || step.Op == "cast" || step.Op == "begin_ability" || step.Property == "pawn.ability_cooldown") RequireDef<AbilityDef>(step.DefName);
             else if (step.Op == "fixture_hediff" || step.Property == "pawn.hediff_count") RequireDef<HediffDef>(step.DefName);
             if (step.StuffName != null) RequireDef<ThingDef>(step.StuffName);
         }

@@ -1,5 +1,15 @@
 # RimProbe
 
+## Fastest start: give your agent the repository URL
+
+Send this to an **AI/agent that can use local tools**, replacing the paths:
+
+> Read https://github.com/OPFIMISS/RimProbe, its READMEs and docs/GETTING_STARTED.md. Install and configure the RimProbe MCP, then use RimProbe to test my mod in the real game. Game: `D:/Steam/steamapps/common/RimWorld`; target mod: `YOUR_PATH`. Check versions and capabilities, derive tests from the actual implementation, run startup checks, prepare fixtures, request normal actions, assert independent effects, inspect errors and verify cleanup. Preserve player settings, DLC and order. Use disposable profiles and the background private desktop. Report unsupported/uncovered behavior and remaining human checks explicitly.
+
+The agent can start with `git clone https://github.com/OPFIMISS/RimProbe.git`, then follow the installation commands below. **A URL or the phrase “use RimProbe for real-game testing” does not install an MCP automatically.** Local tools, the game, build prerequisites and a configured MCP client are required. Once configured, simply ask: “Use RimProbe to test this mod: check startup, then validate the effects implemented in its code.”
+
+2026-10-30 update: startup-only checks, typed interaction handles, readiness barriers, cross-map state observations, compact polling and read-only startup comparisons. 148 offline tests and both version builds pass; two 1.7 Def effect cases pass while startup errors keep overall results inconclusive. See [protocol and limits](docs/interactions.md) and [validation evidence](docs/validation/2026-10-30-interactions.md).
+
 **Let AI agents launch real RimWorld tests in the background and inspect structured evidence.**
 
 [中文 README](README.md) · [Getting started](docs/GETTING_STARTED.md) · [Architecture & extensions](docs/ARCHITECTURE.md) · [Chinese agent handbook](docs/AGENT_QUICKSTART.zh-CN.md)
@@ -32,9 +42,9 @@ A new Def using a supported mechanism generally needs a new plan, not a per-obje
 | Game | Runtime / references | Validation |
 |---|---|---|
 | 1.6 | net472, Unity/Mono, separate Managed references | Real-reference compilation and offline checks; no live acceptance yet |
-| 1.7 | net10.0, Waylith, separate game-root references | Earlier selected builds have live records; latest exception/cleanup improvements have compilation and offline validation only |
+| 1.7 | net10.0, Waylith, separate game-root references | Per-iteration live evidence; the new interaction-specific record is separate from full live acceptance |
 
-References, outputs and intermediates are separate. The latest recorded suite passed **131 Python offline tests**, both Agent builds and offline C# checks. This does not mean your mod passed or the latest build completed the entire live matrix. See [acceptance status](docs/ACCEPTANCE_STATUS.md).
+References, outputs and intermediates are separate. Iteration ten adds interaction, startup and baseline checks. Offline tests, real-reference compilation and actual game evidence are recorded separately; they do not certify your target mod. See [acceptance status](docs/ACCEPTANCE_STATUS.md).
 
 ## Install from source
 
@@ -80,7 +90,7 @@ Clients supporting `mcpServers` can use this stdio configuration. Other clients 
 4. Poll `rimprobe_get_run(run_id, wait_seconds=10)` until `controller_finished=true`. Successful cleanup also requires `cleanup_status="succeeded"` and `owned_process_exit_verified=true`.
 5. Read selected reports, diagnostics, actual load order and stop artifacts with `rimprobe_get_artifact`; use `rimprobe_cancel_run` to cancel or retry cleanup of the original retained owned session.
 
-The default surface has nine tools, also including `rimprobe_inspect_mod` for bounded hints from an authorized source/Def directory. Discovery without assertions does not produce a functional pass. `cleanup_complete` is a legacy attempt-finished alias, not proof of process exit. See [the first-test tutorial](docs/GETTING_STARTED.md); no manual game launch is needed.
+The default surface has 15 tools, including authorized source/Def hints, `rimprobe_run_startup` without map generation, four typed interaction tools and read-only startup comparison. `get_run` defaults to compact progress and outcome dimensions; request `detail:true` for details. Discovery without assertions does not produce a functional pass. `cleanup_complete` is an attempt-finished alias, not proof of exit. See [the tutorial](docs/GETTING_STARTED.md); no manual launch is needed.
 
 ## How it works
 
@@ -115,7 +125,7 @@ Private desktops avoid system-input takeover, but a complete game still consumes
 
 Offline tests do not launch games. Real-reference compilation, offline testing and live verification are recorded separately. Local `runs/` evidence is excluded from publication; `docs/validation/` contains historical summaries, not downloadable copies of every local artifact.
 
-Gaps include random quicktest worlds, save/load, fuel/production workflows, arbitrary ability frameworks, custom UI pixels/hit-testing, complete artifact provenance, baseline comparison and historical MCP queries. The server retains its latest run only; older evidence remains on disk. A pass covers the declared assertions. No errors, accepted jobs, cooldowns or completed buildings cannot replace actual effect checks.
+Gaps include random quicktest worlds, save/load, fuel/production, Caravan, arbitrary ability frameworks, source/verb Targeter chains, bare world tiles, UI pixels/hit-testing, complete artifact provenance and general historical MCP queries. Startup comparison can read two stored sessions under the run root; general run queries still retain the latest run only. A pass covers declared assertions; no-error logs, accepted actions and readiness do not replace effect checks.
 
 ## Documentation and distribution
 

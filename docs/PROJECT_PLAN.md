@@ -8,7 +8,7 @@
 
 - 默认继承正常/指定 ModsConfig 的启用 Mod/DLC 相对顺序；只在一次性副本增补。结束输出完整实际顺序和源指纹审计，不恢复覆盖并发改动。
 - 只有明确重复 packageId 消息被用户许可为噪声；其他启动异常保留，动作后的新红字通过序号日志与文件增量观察。
-- 默认九工具，含 inspect_mod/run_contract/run_plan。嵌套参数 schema、通用组合例子、轻量模型流程见 composable-plans.md；原有快捷契约见 code-driven-testing.md。
+- 默认 15 工具，含 inspect_mod/run_contract/run_plan、无地图启动、四个交互工具与只读启动对照。嵌套参数 schema、通用组合例子、轻量模型流程见 composable-plans.md / interactions.md；原有快捷契约见 code-driven-testing.md。
 - 1.7 真实 MCP 已证实：木墙 passed、错误材料 blocked、真实能力效果 passed、无效果负例 failed；相应构建还验证了能力取消/回收。不是全模型实测或所有 Mod 已覆盖。
 - 完整分步状态见 ITERATION_02.md / ITERATION_03.md / ITERATION_04.md / ITERATION_05.md；全量缺口见 ACCEPTANCE_STATUS.md；UI、其他正常交互及未知框架继续按源码语义增加机制级原语/观察器，不使用任意反射或给定固定名单外一律不测。
 

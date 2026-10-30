@@ -11,7 +11,7 @@ class ServerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             server = create_server(Path(directory), Path(directory) / "runs", advanced_tools=True)
             tools = asyncio.run(server.list_tools())
-            self.assertEqual(len(tools), 14)
+            self.assertEqual(len(tools), 20)
             self.assertIn("rimprobe_get_state", {tool.name for tool in tools})
 
     def test_sdk_registers_expected_tools(self):
@@ -22,6 +22,7 @@ class ServerTests(unittest.TestCase):
                 "rimprobe_doctor", "rimprobe_capabilities", "rimprobe_run_suite",
                 "rimprobe_get_run", "rimprobe_cancel_run", "rimprobe_get_artifact",
                 "rimprobe_inspect_mod", "rimprobe_run_contract", "rimprobe_run_plan",
+                "rimprobe_run_startup", "rimprobe_inspect_interaction", "rimprobe_enumerate_choices", "rimprobe_select_choice", "rimprobe_cancel_interaction", "rimprobe_compare_startup",
             })
 
     def test_contract_tool_exposes_effect_schema_for_small_models(self):
