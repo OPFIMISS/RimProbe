@@ -1,5 +1,14 @@
 # RimProbe
 
+> [!IMPORTANT]
+> **Project stance: help mod authors work more effectively; oppose fully automated mass production of low-quality AI mods.**
+>
+> This project helps authors develop, diagnose and validate their work with AI tools. It never replaces human playtesting. **Before publishing, authors must personally enter the real game and test their work in the target version and intended mod environment.** Successful compilation, clean logs or an AI-reported pass cannot replace this step. Do not publish work you have not personally playtested as verified content.
+>
+> **Respect original creators and obtain authorization first.** This project does not encourage decompiling another creator's mod or uploading or feeding their source code or DLLs to AI without authorization from the creator or relevant rights holder. Such use violates the purpose of this project and disrespects the original creator's work. Access to a file does not grant permission to use it this way.
+>
+> AI is becoming part of development, but **AI is a tool, not a wishing well**. Ideas, judgment, understanding and responsibility remain with the user. Approach AI thoughtfully, consider how you use it, and take responsibility for what you publish.
+
 ## Fastest start: give your agent the repository URL
 
 Send this to an **AI/agent that can use local tools**, replacing the paths:
