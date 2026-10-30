@@ -14,7 +14,9 @@ The agent can start with `git clone https://github.com/OPFIMISS/RimProbe.git`, t
 
 [中文 README](README.md) · [Getting started](docs/GETTING_STARTED.md) · [Architecture & extensions](docs/ARCHITECTURE.md) · [Chinese agent handbook](docs/AGENT_QUICKSTART.zh-CN.md)
 
-RimProbe combines a local MCP stdio server with an in-game Agent mod. Agents derive tests from actual source and Defs, prepare disposable objects, request normal game actions, and assert observable effects. Games run on a private Windows desktop without controlling the system mouse or keyboard. RimSage can inspect implementation; RimProbe checks runtime behavior and is not a decompiler.
+RimProbe combines a local MCP stdio server with an in-game Agent mod. Agents derive tests from actual source and Defs, prepare disposable objects, request normal game actions, and assert observable effects. Games run on a private Windows desktop without controlling the system mouse or keyboard.
+
+**Recommended companions: [RimSage](https://github.com/realloon/RimSage) and [rimworld-modding-skill](https://github.com/Kon-on/rimworld-modding-skill).** RimSage is an excellent MCP project that lets AI query the game's decompiled source through tools, grounding code in actual APIs and implementations and substantially reducing errors caused by guesswork. rimworld-modding-skill provides RimWorld mod development guidance and workflows; RimProbe runs real-game tests, observes effects and collects evidence. Together they support a source inspection → development → testing → repair workflow.
 
 **Status: 0.1.0 developer preview, distributed as source.** Useful for basic and explicitly designed multi-stage tests, not automatic certification of every mod. Final playtesting remains a human task.
 

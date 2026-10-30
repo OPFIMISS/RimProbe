@@ -14,7 +14,9 @@ Agent 可以先执行 `git clone https://github.com/OPFIMISS/RimProbe.git`，再
 
 [English README](README.en.md) · [快速上手 / Quick start](docs/GETTING_STARTED.md) · [中文 Agent 说明书](docs/AGENT_QUICKSTART.zh-CN.md) · [架构与扩展](docs/ARCHITECTURE.md)
 
-RimProbe 是本地 MCP 服务和游戏内 Agent Mod。AI 根据实际源码与 Def，将对象准备、正常游戏动作和效果断言组合为测试计划。游戏在独立 Windows 桌面运行，不接管系统鼠标或键盘。RimSage 可用于了解实现，RimProbe 检查运行行为；RimProbe 不是反编译器。
+RimProbe 是本地 MCP 服务和游戏内 Agent Mod。AI 根据实际源码与 Def，将对象准备、正常游戏动作和效果断言组合为测试计划。游戏在独立 Windows 桌面运行，不接管系统鼠标或键盘。
+
+**推荐搭配 [RimSage](https://github.com/realloon/RimSage) 和 [rimworld-modding-skill](https://github.com/Kon-on/rimworld-modding-skill) 使用。** RimSage 是优秀的 MCP 项目，让 AI 通过工具查询游戏本体的反编译源码，依据真实 API 与实现编写代码，大幅减少猜测导致的错误。rimworld-modding-skill 提供 RimWorld Mod 开发指南与工作流程；RimProbe 则负责在真实游戏中执行测试、观察效果并收集证据。三者可配合完成“查询源码 → 开发 → 实测 → 修复”的流程。
 
 **状态：0.1.0 开发预览，源码分发。** 适合基础测试和明确设计的多阶段测试，不是任意 Mod 的全自动验收工具；最终体验仍需人工确认。
 
