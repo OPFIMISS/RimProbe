@@ -280,3 +280,17 @@ RimProbe 是后台运行真实游戏的测试工具。它通过游戏内 Agent�
 - [通用计划详细语义](composable-plans.md)：完整参数规则和观察限制。
 - [验收状态](ACCEPTANCE_STATUS.md)：已完成范围及后续缺口。
 - [最近一轮限定真机验证](validation/2026-10-25-failure-diagnostics.md)：连续施法、负例、取消与清理证据。
+
+## 多开：玩家继续玩，Agent 独立测试
+
+用户要求只测指定 Mod、全部已安装 DLC 和 Harmony 时，不要继承玩家的大列表。显式调用：
+
+```json
+{"profile_mode":"minimal_all_installed_dlc","extra_mods":["目标包ID","必要依赖或测试包ID"],"timeout_seconds":180}
+```
+
+用于 `rimprobe_run_startup` 检查启动；随后对 `rimprobe_run_plan`／`rimprobe_run_contract` 使用相同模式执行独立效果断言。顺序为 Harmony、Core、已安装 DLC、Agent、按传入顺序去重的新增包；不要把占位包 ID 原样提交。依赖需用户／开发者明确提供，不自动读取第三方实现或重排玩家配置。依赖 Agent 的测试包不再需要手动把 Agent 放在前面。
+
+`inherit` 仍是默认；`minimal` 不自动启用 DLC。新模式不读取正常玩家 Mod 列表。每个服务只操作自己创建的一个游戏进程；取消／停止不按进程名杀游戏、不接管玩家端点。若同时有多个测试任务，使用独立 MCP 服务与 runs 目录。即使后台无输入，也会竞争 CPU、内存和显卡。
+
+完成后读取 `loaded-mods.json` 输出实际包与排序；核实 `cleanup_status=succeeded` 和 `owned_process_exit_verified=true`。基线中的共同红字仍保留，不能升级为整体通过。完整多开复现实验见[验证记录](validation/2026-10-31-multi-instance.md)。

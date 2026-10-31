@@ -6,6 +6,7 @@ import time
 
 from .controller import Controller, install_agent, validate_game
 from .errors import ProbeError
+from .profiles import PROFILE_MODES
 
 
 def main() -> None:
@@ -28,18 +29,18 @@ def main() -> None:
     building.add_argument("--timeout", type=int, default=180)
     building.add_argument("--max-ticks", type=int, default=60000)
     building.add_argument("--supply-delay-ticks", type=int, default=0)
-    building.add_argument("--profile-mode", choices=["inherit", "minimal"], default="inherit")
+    building.add_argument("--profile-mode", choices=PROFILE_MODES, default="inherit")
     contract = commands.add_parser("test-contract")
     contract.add_argument("--contract", type=Path, required=True)
     contract.add_argument("--extra-mod", action="append", default=[])
-    contract.add_argument("--profile-mode", choices=["inherit", "minimal"], default="inherit")
+    contract.add_argument("--profile-mode", choices=PROFILE_MODES, default="inherit")
     inspection = commands.add_parser("inspect-mod")
     inspection.add_argument("--mod-path", required=True)
     inspection.add_argument("--version", choices=["1.6", "1.7"], default="1.7")
     smoke = commands.add_parser("smoke")
     smoke.add_argument("--timeout", type=float, default=180)
     smoke.add_argument("--extra-mod", action="append", default=[])
-    smoke.add_argument("--profile-mode", choices=["inherit", "minimal"], default="inherit")
+    smoke.add_argument("--profile-mode", choices=PROFILE_MODES, default="inherit")
     arguments = parser.parse_args()
     try:
         if arguments.command == "serve":

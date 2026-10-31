@@ -90,3 +90,11 @@ Game/engine/Agent fingerprints, load order and profile integrity already exist. 
 The repository excludes game/Harmony/target-mod binaries, build caches, environment files and raw run data. Historical validation summaries are included, but their local `runs/` links are not downloadable evidence bundles. Archived development notes retain original machine paths as historical context. Public setup examples must be adapted to the reader's machine.
 
 当前源码预览没有稳定 Release。二进制分发需先确定对应构建的版本身份、限定真机验证范围及可复查打包清单；不能把离线编译通过当成稳定运行保证。
+
+## Independent all-DLC profiles and concurrent ownership
+
+`minimal_all_installed_dlc` creates Harmony → Core → installed DLC → Agent → explicit extras, without reading normal ModsConfig. DLC identity comes from installed About metadata; five known DLC use release order and unknown future identities append deterministically. Actual loading is still checked against the complete request. No licensing/source filtering or dependency inference occurs. Agent insertion precedes new packs so their `IProbeTest` types resolve during loading. Inherited source order remains intact.
+
+Concurrency is process ownership, not attachment or multiplexing a single Agent: each Controller permits one game and has its own private Win32 desktop, Job Object, profile, token, session ID and descriptor. Different MCP services can coexist. `stop`/`cancel_run` operate on retained process handles; neither scans player processes to select termination targets. Descriptor session/PID/protocol, authenticated transport and exact active-order checks fail closed on mismatches. A verification-only script performs fixed read-only OS process/configuration audits and explicitly tests cancelling B without affecting A. It has no source-reading or code-execution endpoint.
+
+Shared game installation files and installed Mod DLLs remain shared: never hot-redeploy while any instance uses them. Profile isolation does not mean resource isolation or replicated per-Mod settings. See the multi-instance validation record for exact version and coverage.

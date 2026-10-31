@@ -80,6 +80,52 @@ class ControllerTests(unittest.TestCase):
             self.controller.launch()
         self.assertEqual(raised.exception.code, "session_exists")
 
+    def test_all_dlc_profile_uses_actual_metadata_and_keeps_test_pack_after_agent(self):
+        for folder, name in [("A-Anomaly", "anomaly"), ("Z-Royalty", "royalty"), ("B-Biotech", "biotech")]:
+            about = self.game / "Data" / folder / "About"
+            about.mkdir(parents=True)
+            (about / "About.xml").write_text(f"<ModMetaData><packageId>ludeon.rimworld.{name}</packageId></ModMetaData>")
+        source = self.root / "bad-player-config.xml"
+        source.write_bytes(b"must not read or change")
+        self.controller.mods_config = source
+        self.controller.launch(profile_mode="minimal_all_installed_dlc", extra_mods=["test.target", "test.pack"])
+        directory = self.controller.session.directory
+        mods = [item.text for item in xml.parse(directory / "profile/Config/ModsConfig.xml").findall("activeMods/li")]
+        self.assertEqual(mods, ["brrainz.harmony", "ludeon.rimworld", "ludeon.rimworld.royalty",
+                               "ludeon.rimworld.biotech", "ludeon.rimworld.anomaly", "rimprobe.agent", "test.target", "test.pack"])
+        self.assertEqual(source.read_bytes(), b"must not read or change")
+        plan = json.loads((directory / "profile-plan.json").read_text(encoding="utf-8"))
+        self.assertEqual(plan["installed_dlc"], mods[2:5])
+
+    def test_stopping_one_controller_preserves_other_owned_process_and_endpoint(self):
+        other = Controller(self.game, self.root / "other-runs")
+        process_b = Mock(pid=67890)
+        process_b.poll.return_value = None
+        process_b.wait.return_value = 0
+        worker_a, worker_b = Mock(), Mock()
+        worker_a.spawn.return_value = self.process
+        worker_b.spawn.return_value = process_b
+        worker_a.evidence.return_value = worker_b.evidence.return_value = {"mode": "offline-fixture", "foreground_violations": []}
+        with patch("rimprobe.controller.BackgroundWorker", side_effect=[worker_a, worker_b]):
+            self.controller.launch(profile_mode="minimal_all_installed_dlc")
+            other.launch(profile_mode="minimal_all_installed_dlc")
+        session_b = other.session
+        self.assertNotEqual(self.controller.session.session_id, session_b.session_id)
+        self.assertNotEqual(self.controller.session.token, session_b.token)
+        self.assertNotEqual(self.controller.session.directory, session_b.directory)
+        stopped = self.controller.stop()
+        self.assertTrue(stopped["owned_process_exit_verified"])
+        process_b.terminate.assert_not_called()
+        process_b.kill.assert_not_called()
+        worker_b.close.assert_not_called()
+        self.assertIs(other.session, session_b)
+        descriptor = {"protocol": 1, "session_id": "foreign-session", "pid": self.process.pid, "port": 32123}
+        (session_b.directory / "bridge.json").write_text(json.dumps(descriptor), encoding="utf-8")
+        with self.assertRaises(ProbeError) as raised:
+            other.status()
+        self.assertEqual(raised.exception.code, "bridge_mismatch")
+        other.stop()
+
     def test_process_exit_is_distinct_from_bridge_not_ready(self):
         self.launch()
         with self.assertRaises(ProbeError) as raised:
@@ -153,6 +199,18 @@ class ControllerTests(unittest.TestCase):
         self.assertIn(str(session.directory / "Player.log"), arguments)
         self.assertNotIn("-NoFileLog", arguments)
         self.assertEqual(session.manifest["game"]["mod_version"], "1.6")
+
+    def test_16_all_dlc_uses_separate_profile_and_correct_executable(self):
+        self.prepare_16()
+        about = self.game / "Data/Royalty/About"
+        about.mkdir(parents=True)
+        (about / "About.xml").write_text("<ModMetaData><packageId>ludeon.rimworld.royalty</packageId></ModMetaData>")
+        self.controller.launch(profile_mode="minimal_all_installed_dlc", extra_mods=["fixture.testpack"])
+        session = self.controller.session
+        self.assertEqual(session.manifest["game"]["mod_version"], "1.6")
+        self.assertEqual(session.manifest["active_mods"], ["brrainz.harmony", "ludeon.rimworld",
+                                                        "ludeon.rimworld.royalty", "rimprobe.agent", "fixture.testpack"])
+        self.assertTrue(self.popen.call_args.args[0][0].endswith("RimWorldWin64.exe"))
 
     def test_rejects_agent_reporting_other_game_version(self):
         session = self.launch()

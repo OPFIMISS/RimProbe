@@ -10,6 +10,7 @@ from .runner import TestRunner, capabilities
 from .inspection import inspect_mod
 from .baselines import compare_sessions
 from .schema import BehaviorContractInput
+from .profiles import ProfileMode
 from .plans import ScenarioPlanInput, InteractionQueryInput
 
 
@@ -28,6 +29,8 @@ def create_server(game_path: Path, runs_path: Path, advanced_tools: bool = False
         "RimProbe", version="0.1.0", lifespan=lifespan,
         instructions="Local RimWorld 1.6 and 1.7 test sessions only; version-specific Agent assemblies. No arbitrary code execution. "
         "Typed interactions are semantic callbacks, not UI hit-tests. Startup-only checks do not generate maps. "
+        "For concurrent isolated mod-only tests use profile_mode=minimal_all_installed_dlc and explicit extra_mods; "
+        "do not attach to or stop existing player processes. Missing Agent is inserted before new test packs. "
         "No-error logs or map readiness do not prove functional correctness. cleanup_complete means attempt ended; "
         "require cleanup_status=succeeded and owned_process_exit_verified=true for verified cleanup.",
     )
@@ -53,7 +56,7 @@ def create_server(game_path: Path, runs_path: Path, advanced_tools: bool = False
     @server.tool()
     async def rimprobe_run_suite(def_name: str = "Wall", stuff_name: str | None = None,
                                 extra_mods: list[str] | None = None, timeout_seconds: int = 180,
-                                max_ticks: int = 60000, profile_mode: str = "inherit", supply_delay_ticks: int = 0) -> dict:
+                                max_ticks: int = 60000, profile_mode: ProfileMode = "inherit", supply_delay_ticks: int = 0) -> dict:
         """Start an autonomous building test in a private desktop. Returns run_id immediately; poll get_run every 2s. Real vanilla hauling/construction, not direct completion. Unknown functions are unsupported; worker stops automatically."""
         return await execute(runner.run_suite, def_name, stuff_name, extra_mods, timeout_seconds, max_ticks, profile_mode, None, supply_delay_ticks)
 
@@ -63,17 +66,17 @@ def create_server(game_path: Path, runs_path: Path, advanced_tools: bool = False
         return await execute(inspect_mod, mod_path, version)
 
     @server.tool()
-    async def rimprobe_run_plan(plan: ScenarioPlanInput, extra_mods: list[str] | None = None, profile_mode: str = "inherit") -> dict:
+    async def rimprobe_run_plan(plan: ScenarioPlanInput, extra_mods: list[str] | None = None, profile_mode: ProfileMode = "inherit") -> dict:
         """Compose <=24 typed steps: fixture, normal jobs, typed interactions, readiness barriers and independent state assertions. No reflection/eval. Declare fixtures first. Read capabilities.plans; poll until controller_finished and verify cleanup status/owned exit separately."""
         return await execute(runner.run_plan, plan.model_dump(exclude_unset=True, by_alias=True), extra_mods, profile_mode)
 
     @server.tool()
-    async def rimprobe_run_startup(extra_mods: list[str] | None = None, profile_mode: str = "inherit", timeout_seconds: int = 180) -> dict:
-        """Check startup Def/resource initialization without quicktest/map generation. No functional behavior claim. Poll get_run until owned-process cleanup is verified."""
+    async def rimprobe_run_startup(extra_mods: list[str] | None = None, profile_mode: ProfileMode = "inherit", timeout_seconds: int = 180) -> dict:
+        """Check startup without map generation. For a separate mod-only instance alongside a player game, use profile_mode='minimal_all_installed_dlc' and extra_mods=[target package, dependencies/test packs in order]. Adds all installed DLC, Harmony and Agent; never stops player processes. No functional behavior claim; verify cleanup by polling get_run."""
         return await execute(runner.run_startup, extra_mods, profile_mode, timeout_seconds)
 
     @server.tool()
-    async def rimprobe_run_contract(contract: BehaviorContractInput, extra_mods: list[str] | None = None, profile_mode: str = "inherit") -> dict:
+    async def rimprobe_run_contract(contract: BehaviorContractInput, extra_mods: list[str] | None = None, profile_mode: ProfileMode = "inherit") -> dict:
         """Run schema=1 code-derived contract: building_power, ability_cast, item_ingest, or ui_info_card. Uses normal jobs or the real UI draw loop; never directly writes expected outcomes. Default inherits enabled Mods/DLC. Returns run_id; final report includes actual order."""
         return await execute(runner.run_contract, contract.model_dump(exclude_unset=True, by_alias=True), extra_mods, profile_mode)
 
@@ -121,7 +124,7 @@ def create_server(game_path: Path, runs_path: Path, advanced_tools: bool = False
         return server
 
     @server.tool()
-    async def rimprobe_launch(quicktest: bool = True, extra_mods: list[str] | None = None, profile_mode: str = "inherit") -> dict:
+    async def rimprobe_launch(quicktest: bool = True, extra_mods: list[str] | None = None, profile_mode: ProfileMode = "inherit") -> dict:
         """Launch one owned game using a fresh isolated profile; extra_mods is an ordered packageId list."""
         return await execute(controller.launch, quicktest, extra_mods, profile_mode)
 

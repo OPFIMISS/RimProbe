@@ -166,3 +166,29 @@ Provide evidence paths, complete actual mod order, fixes/reruns and remaining hu
 ## 7. Beyond the first test
 
 Use [architecture and extensions](ARCHITECTURE.md) for mechanism-level additions and trusted test packs. The current [acceptance gaps](ACCEPTANCE_STATUS.md) include save/load, broader fuel/production and UI workflows, deterministic fixtures and 1.6 live validation. Custom settings are not inherited automatically, and the default quicktest map is random.
+
+## Keep the player game running: independent all-DLC tests
+
+Use `profile_mode="minimal_all_installed_dlc"` and explicit `extra_mods` in startup, suite, plan or contract tools. Example startup call:
+
+```json
+{"profile_mode":"minimal_all_installed_dlc","extra_mods":["your.target.package","your.testpack.package"],"timeout_seconds":180}
+```
+
+Only Harmony, Core, installed DLC, Agent and these packages are enabled. Include required dependencies explicitly, in order; no dependency inference, third-party implementation reading or downloads occur. The missing Agent is inserted before new packs. This mode does not read the player Mod list or write normal saves/settings. Default `inherit` preserves enabled order; old `minimal` still excludes automatic DLC.
+
+CLI uses the same mode, for example a normal vanilla building probe with the target mod enabled:
+
+```powershell
+& ./.venv/Scripts/python.exe -m rimprobe --game 'D:/Steam/steamapps/common/RimWorld' --runs ./runs/mod-only test-building --def-name Wall --stuff-name WoodLog --extra-mod your.target.package --profile-mode minimal_all_installed_dlc
+```
+
+This checks Wall construction in that environment, not the target mod's own effects; use a source-derived plan/contract for those. Each MCP service owns one independent background instance. Separate services can coexist; stop/cancel never attach to or terminate a player process. Shared CPU/GPU/memory still affect performance. Inspect actual load order and cleanup separately.
+
+To reproduce controller-isolation verification with two owned games (plus any already running player game):
+
+```powershell
+& ./.venv/Scripts/python.exe scripts/verify-concurrent-mcp.py --game 'D:/Steam/steamapps/common/RimWorld' --runs ./runs/concurrent --extra-mod your.target.package
+```
+
+The script retains A at the menu, cancels one B, runs a second B with a real construction test, checks A's authenticated response and unchanged endpoint after each B, and reclaims both. For an explicitly installed trusted pack, add its package with `--extra-mod` and its key with `--registered-test`. Private evidence records PID/start-time audits, configuration hashes, actual order and separate strict functional outcomes. Completed isolation is not full functional acceptance. See [validation](validation/2026-10-31-multi-instance.md).

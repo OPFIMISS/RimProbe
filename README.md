@@ -140,6 +140,24 @@ AI / MCP client → Python stdio server → runner/controller
 
 当前缺口包括随机 quicktest、存读档、燃料/生产账单、Caravan、任意技能框架、source/verb Targeter 多段链、裸世界 tile、UI 像素/命中、完整程序集 provenance 和一般历史 MCP 查询。启动对照可只读访问同一 run root 的两个 session；一般工具仍只保留本实例最近运行。passed 只覆盖列明断言，无红字、动作接受或就绪不能替代实际效果。
 
+2026-10-31 更新：新增仅指定 Mod＋全已安装 DLC 的独立多开测试模式；156 项测试与双版本引用编译通过，1.7 两实例隔离及真实建造已验证，遗留启动错误仍保留严格结论。
+
+## 多开隔离测试：保留当前游戏
+
+玩家可继续使用当前游戏；Agent 另开一个后台测试进程。调用启动、计划或契约工具时，显式设置 `profile_mode="minimal_all_installed_dlc"`，并在 `extra_mods` 中给出目标 Mod、必要依赖和测试包的包 ID（按依赖顺序）。测试实例仅启用 Harmony → Core → 全部已安装 DLC → RimProbe Agent → 指定 Mod／测试包，不继承玩家的其他 Mod，也不修改正常配置或存档。
+
+```json
+{"profile_mode":"minimal_all_installed_dlc","extra_mods":["your.target.package","your.testpack.package"],"timeout_seconds":180}
+```
+
+上例用于 `rimprobe_run_startup`，只检查启动；随后用同一模式的 `rimprobe_run_plan` 或 `rimprobe_run_contract` 执行功能断言。只传目标 Mod 时，省略测试包。Mod 必须已经安装；依赖不会自动猜测或添加。全 DLC 指本机 `Data/*/About/About.xml` 中识别出的已安装 DLC，不做来源或许可证过滤，不下载缺失 DLC。已知五个 DLC 按发行顺序加入，未知未来 DLC 追加并在实际加载审计中核对。
+
+默认 `inherit` 仍保留玩家启用列表与相对顺序；旧 `minimal` 仍只有 Harmony、Core、Agent 及指定新增项。自动补入的 Agent 现在排在新增测试包之前；继承列表中已有条目的顺序不擅自重排。
+
+每轮有独立 profile、私有桌面、进程句柄、会话令牌和端点；取消只回收该控制器拥有的进程，不扫描或结束玩家进程。每个 MCP 服务同时拥有一个测试实例，多个服务可独立运行。后台运行仍会占用 CPU／内存／显卡，不承诺零性能影响。查看 `profile-plan.json`、`loaded-mods.json`、`stop.json`，只有实际排序一致、独立功能断言通过、清理成功才构成相应证据。没有红字不等于功能通过。
+
+本轮离线、双版本引用编译与多开实机证据见[验证记录](docs/validation/2026-10-31-multi-instance.md)。
+
 ## 文档与分发
 
 - [English quick start](docs/GETTING_STARTED.md) / [中文 Agent 说明书](docs/AGENT_QUICKSTART.zh-CN.md)

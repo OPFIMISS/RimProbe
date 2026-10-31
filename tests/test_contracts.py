@@ -86,7 +86,7 @@ class ProfileTests(unittest.TestCase):
         original = self.source.read_bytes()
         profile = plan_profile("inherit", ["test.extra"], self.source)
         mods = profile["requested_mods"]
-        self.assertEqual(mods, ["brrainz.harmony", "ludeon.rimworld", "ludeon.rimworld.royalty", "custom.ability", "ludeon.rimworld.biotech", "test.extra", "rimprobe.agent"])
+        self.assertEqual(mods, ["brrainz.harmony", "ludeon.rimworld", "ludeon.rimworld.royalty", "custom.ability", "ludeon.rimworld.biotech", "rimprobe.agent", "test.extra"])
         self.assertEqual(self.source.read_bytes(), original)
         self.assertFalse(profile["player_config_modified"])
 
@@ -98,6 +98,29 @@ class ProfileTests(unittest.TestCase):
 
     def test_minimal_requires_explicit_mode(self):
         self.assertEqual(plan_profile("minimal", [])["requested_mods"], ["brrainz.harmony", "ludeon.rimworld", "rimprobe.agent"])
+
+    def test_all_dlc_never_reads_player_source_and_agent_precedes_test_pack(self):
+        self.source.write_bytes(b"invalid player config must not be read")
+        dlc = ["ludeon.rimworld.royalty", "ludeon.rimworld.biotech"]
+        plan = plan_profile("minimal_all_installed_dlc", ["target.mod", "target.probes"], self.source, dlc)
+        self.assertEqual(plan["requested_mods"], ["brrainz.harmony", "ludeon.rimworld", *dlc,
+                                                 "rimprobe.agent", "target.mod", "target.probes"])
+        self.assertIsNone(plan["source"])
+        self.assertFalse(plan["player_config_modified"])
+        self.assertEqual(self.source.read_bytes(), b"invalid player config must not be read")
+
+    def test_all_dlc_requires_inventory_but_accepts_no_installed_dlc(self):
+        with self.assertRaises(ProbeError):
+            plan_profile("minimal_all_installed_dlc", [])
+        self.assertEqual(plan_profile("minimal_all_installed_dlc", [], installed_dlc=[])["requested_mods"],
+                         ["brrainz.harmony", "ludeon.rimworld", "rimprobe.agent"])
+        with self.assertRaises(ProbeError):
+            plan_profile("minimal_all_installed_dlc", [], installed_dlc=["unrelated.thirdparty"])
+
+    def test_existing_agent_and_explicit_duplicates_preserve_inherited_order(self):
+        self.source.write_text("<ModsConfigData><activeMods><li>ludeon.rimworld</li><li>existing.mod</li><li>rimprobe.agent</li></activeMods></ModsConfigData>")
+        result = plan_profile("inherit", ["rimprobe.agent", "target.probes", "target.probes"], self.source)
+        self.assertEqual(result["requested_mods"], ["brrainz.harmony", "ludeon.rimworld", "existing.mod", "rimprobe.agent", "target.probes"])
 
     def test_duplicate_source_is_not_silently_reordered_or_fixed(self):
         self.source.write_text("<ModsConfigData><activeMods><li>ludeon.rimworld</li><li>ludeon.rimworld</li></activeMods></ModsConfigData>")

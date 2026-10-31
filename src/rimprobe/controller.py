@@ -31,7 +31,11 @@ def installed_expansions(game_path: Path) -> list[str]:
             raise ProbeError("invalid_expansion_metadata", f"{about}: {error}") from error
         if package_id.startswith("ludeon.rimworld."):
             expansions.append(package_id)
-    return sorted(set(expansions))
+    # Official release order, independent of filesystem/alphabetic directory order.
+    # Unknown future DLC remain visible and deterministic, never silently excluded.
+    order = {"ludeon.rimworld." + name: index for index, name in enumerate(
+        ("royalty", "ideology", "biotech", "anomaly", "odyssey"))}
+    return sorted(set(expansions), key=lambda package: (order.get(package, len(order)), package))
 
 
 def fingerprint(path: Path) -> str:
@@ -182,7 +186,8 @@ class Controller:
             extra_mods = list(extra_mods or [])
             if any(not isinstance(item, str) or not item.strip() for item in extra_mods):
                 raise ProbeError("invalid_mods", "Each additional Mod must have a nonempty packageId.")
-            profile_plan = plan_profile(profile_mode, extra_mods, self.mods_config)
+            known_expansions = installed_expansions(self.game_path)
+            profile_plan = plan_profile(profile_mode, extra_mods, self.mods_config, known_expansions)
             mods = profile_plan["requested_mods"]
             session_id = uuid.uuid4().hex
             directory = self.runs_path / session_id
@@ -195,7 +200,6 @@ class Controller:
             active = xml.SubElement(config, "activeMods")
             for package_id in mods:
                 xml.SubElement(active, "li").text = package_id
-            known_expansions = installed_expansions(self.game_path)
             known = xml.SubElement(config, "knownExpansions")
             for package_id in known_expansions:
                 xml.SubElement(known, "li").text = package_id

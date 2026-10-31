@@ -65,6 +65,8 @@ class McpWireTests(unittest.TestCase):
                     result = send("tools/call", {"name": "rimprobe_capabilities", "arguments": {}}, 3)
                     capabilities = json.loads(next(item["text"] for item in result["result"]["content"] if item["type"] == "text"))
                     self.assertEqual(capabilities["versions"], ["1.6", "1.7"])
+                    self.assertIn("minimal_all_installed_dlc", capabilities["profile_modes"])
+                    self.assertIn("minimal_all_installed_dlc", encoded)
                     invalid = send("tools/call", {"name": "rimprobe_run_contract", "arguments": {
                         "contract": {"schema": 1, "recipe": "execute_csharp"}}}, 4)
                     self.assertTrue(invalid["result"]["isError"])

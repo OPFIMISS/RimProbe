@@ -146,3 +146,17 @@ Gaps include random quicktest worlds, save/load, fuel/production, Caravan, arbit
 - [Acceptance gates](docs/ACCEPTANCE_STATUS.md) / [historical notes](DEVELOPMENT_HISTORY.zh-CN.md)
 
 This is a source preview, not a stable binary Release. Game, Harmony and target-mod binaries, saves and raw run logs are excluded. A project license has not been selected; no author/license metadata has been invented.
+
+2026-10-31 update: independent mod-only/all-installed-DLC profiles, Agent-before-pack ordering and typed mode discovery. 156 checks and both version reference builds pass; two-instance 1.7 isolation and real construction are verified, with startup errors keeping overall acceptance inconclusive.
+
+## Concurrent mod-only testing
+
+Keep the player's game running. Call `rimprobe_run_startup` with:
+
+```json
+{"profile_mode":"minimal_all_installed_dlc","extra_mods":["your.target.package","your.testpack.package"],"timeout_seconds":180}
+```
+
+This starts an independent background instance with Harmony, Core, every installed DLC, RimProbe Agent and only the explicit extra packages. Omit the test-pack ID if unused. Packages must already be installed; include required dependencies explicitly in loading order. Follow startup with a plan or contract using the same mode for functional tests. The Agent is inserted before newly appended test packs. Existing inherited order is preserved.
+
+The default remains `inherit`; legacy `minimal` does not enable DLC. All-DLC mode reads identities from installed Data/About metadata, never the player's Mod list, without licensing/source filtering or downloads. Known DLC use release order; future identities append and require actual-load audit. Every run has its own profile, private desktop, owned process handle and authenticated endpoint. Cancellation affects only that controller's run. Each MCP service owns at most one active test instance; separate services can coexist. Background execution still consumes shared resources. Check actual load order, functional assertions and verified cleanup separately. See [validation](docs/validation/2026-10-31-multi-instance.md).
